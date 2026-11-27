@@ -5,7 +5,8 @@ from sqlalchemy.orm import Session
 from app.config import DEFAULT_USER_ID
 from app.models import Category, Expense
 from app.schemas.category import CategoryCreate
-from app.schemas.expense import ExpenseCreate, ExpenseUpdate
+from app.schemas.expense import ExpenseCreate, ExpenseOut, ExpenseSaved, ExpenseUpdate
+from app.services.alert_service import get_category_alert
 from app.services import ConflictError, NotFoundError, month_bounds, parse_month
 
 
@@ -58,25 +59,32 @@ def get_expense(db: Session, expense_id: int) -> Expense:
     return expense
 
 
-def create_expense(db: Session, data: ExpenseCreate) -> Expense:
-    """Save a new expense."""
+def _with_alert(db: Session, expense: Expense) -> ExpenseSaved:
+    """Attach the current alert of the expense's category and month to the expense."""
+    category = get_category(db, expense.category_id)
+    alert = get_category_alert(db, category, expense.spent_on.year, expense.spent_on.month)
+    return ExpenseSaved(**ExpenseOut.model_validate(expense).model_dump(), alert=alert)
+
+
+def create_expense(db: Session, data: ExpenseCreate) -> ExpenseSaved:
+    """Save a new expense and return it with the current alert status."""
     get_category(db, data.category_id)
     expense = Expense(user_id=DEFAULT_USER_ID, **data.model_dump())
     db.add(expense)
     db.commit()
     db.refresh(expense)
-    return expense
+    return _with_alert(db, expense)
 
 
-def update_expense(db: Session, expense_id: int, data: ExpenseUpdate) -> Expense:
-    """Replace the fields of an existing expense."""
+def update_expense(db: Session, expense_id: int, data: ExpenseUpdate) -> ExpenseSaved:
+    """Replace the fields of an existing expense and return it with the current alert status."""
     expense = get_expense(db, expense_id)
     get_category(db, data.category_id)
     for field, value in data.model_dump().items():
         setattr(expense, field, value)
     db.commit()
     db.refresh(expense)
-    return expense
+    return _with_alert(db, expense)
 
 
 def delete_expense(db: Session, expense_id: int) -> None:

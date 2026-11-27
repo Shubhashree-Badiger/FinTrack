@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 from app import models  # noqa: F401  (registers tables on Base.metadata)
 from app.config import FRONTEND_ORIGIN
 from app.database import Base, engine
-from app.routers import budgets, categories, expenses
+from app.routers import alerts, budgets, categories, expenses
 from app.services import ConflictError, NotFoundError
 
 
@@ -44,6 +44,7 @@ async def conflict_handler(_: Request, exc: ConflictError) -> JSONResponse:
 app.include_router(categories.router)
 app.include_router(expenses.router)
 app.include_router(budgets.router)
+app.include_router(alerts.router)
 
 
 @app.get("/health")

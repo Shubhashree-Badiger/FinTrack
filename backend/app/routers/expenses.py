@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.schemas.budget import MonthQuery
-from app.schemas.expense import ExpenseCreate, ExpenseOut, ExpenseUpdate
+from app.schemas.expense import ExpenseCreate, ExpenseOut, ExpenseSaved, ExpenseUpdate
 from app.services import expense_service
 
 router = APIRouter(prefix="/expenses", tags=["expenses"])
@@ -20,13 +20,13 @@ def list_expenses(
     return expense_service.list_expenses(db, month, category_id)
 
 
-@router.post("", response_model=ExpenseOut, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=ExpenseSaved, status_code=status.HTTP_201_CREATED)
 def create_expense(data: ExpenseCreate, db: Session = Depends(get_db)):
     """Create an expense."""
     return expense_service.create_expense(db, data)
 
 
-@router.put("/{expense_id}", response_model=ExpenseOut)
+@router.put("/{expense_id}", response_model=ExpenseSaved)
 def update_expense(expense_id: int, data: ExpenseUpdate, db: Session = Depends(get_db)):
     """Update an expense."""
     return expense_service.update_expense(db, expense_id, data)

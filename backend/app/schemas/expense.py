@@ -4,6 +4,8 @@ from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.schemas.report import AlertOut
+
 
 class ExpenseCreate(BaseModel):
     """Payload for creating or replacing an expense."""
@@ -29,3 +31,9 @@ class ExpenseOut(BaseModel):
     description: str
     spent_on: date
     created_at: datetime
+
+
+class ExpenseSaved(ExpenseOut):
+    """Saved expense plus the current alert status of its category and month."""
+
+    alert: AlertOut
