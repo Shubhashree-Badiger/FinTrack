@@ -1,24 +1,22 @@
 services:
   db:
-    image: mysql:8.0
+    image: postgres:16-alpine
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword}
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-fintrack}
-      MYSQL_USER: ${MYSQL_USER:-fintrack}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-fintrackpassword}
+      POSTGRES_DB: ${POSTGRES_DB:-fintrack}
+      POSTGRES_USER: ${POSTGRES_USER:-fintrack}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fintrackpassword}
     volumes:
-      - db_data:/var/lib/mysql
+      - db_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p$$MYSQL_ROOT_PASSWORD --silent"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 20
-      start_period: 20s
-
+      start_period: 10s
   backend:
     build: ./backend
     environment:
-      DATABASE_URL: mysql+pymysql://${MYSQL_USER:-fintrack}:${MYSQL_PASSWORD:-fintrackpassword}@db:3306/${MYSQL_DATABASE:-fintrack}
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-fintrack}:${POSTGRES_PASSWORD:-fintrackpassword}@db:5432/${POSTGRES_DB:-fintrack}
       FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:5173}
     ports:
       - "8000:8000"
