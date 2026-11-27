@@ -1,204 +1,590 @@
 # FinTrack – Smart Expense & Savings Management System
 
-FinTrack is a web application for tracking daily expenses, setting monthly budgets per category, and managing savings goals. A FastAPI backend with a PostgreSQL database and a React UI, packaged and deployed together as one Docker image.
+<p align="center">
+  <strong>A smarter way to track expenses, manage budgets, and achieve financial goals.</strong>
+</p>
 
-## Author
+<p align="center">
+  <img src="https://img.shields.io/badge/Frontend-React%20%7C%20Vite-61DAFB?style=flat-square&logo=react&logoColor=white" />
+  <img src="https://img.shields.io/badge/Backend-FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white" />
+  <img src="https://img.shields.io/badge/Database-MySQL%208-4479A1?style=flat-square&logo=mysql&logoColor=white" />
+  <img src="https://img.shields.io/badge/ORM-SQLAlchemy-D71F00?style=flat-square" />
+  <img src="https://img.shields.io/badge/Container-Docker-2496ED?style=flat-square&logo=docker&logoColor=white" />
+</p>
 
-Shubhashree B Badiger, B.E. Computer Science (AI & ML), Vidyavardhaka College of Engineering, Mysuru
+---
 
-## Features
-Accounts:
-- Landing page with an overview of the app, plus **Sign up**, **Sign in** (username and password) and a **Demo** button that opens a ready-made account with data for the current month.
-- Every user has private data. New accounts start empty with default categories.
+## Overview
 
-Core:
-- Log, edit and delete daily expenses, each in a category (Food, Transport, Entertainment, Bills, Shopping, Health, Other, or your own).
-- Set a monthly budget for each category.
-- Dismissible UI alerts when a category budget is exceeded.
-- Total spending per month.
-- Spending vs budget per category.
+**FinTrack** is a full-stack personal finance management application that helps users understand where their money goes, control monthly spending, and track their savings goals.
 
-Extras:
-- Different budgets for different months.
-- "Low" alert when 10% or less of a budget is left.
-- Bar chart of budget vs spent (Recharts). Categories with no spending show as zero.
-- Savings goals with contributions and progress bars.
-- **CSV import:** download a template, upload it (or a bank statement export) and review every row before saving. Categories are guessed from the description, new ones are created, and duplicates are skipped.
-- **Installable app (PWA):** an Install app button, a manifest, icons and a service worker. On phones the layout switches to a top bar with bottom tabs and a centre + button, like a native app.
-- All amounts in Indian Rupees (₹), loading and empty states on every page, responsive layout.
+Instead of manually maintaining expense records and calculating budgets, FinTrack provides a centralized dashboard that organizes financial transactions, monitors category-wise spending, and automatically identifies budget limits.
 
-Alert status (`ok`, `low`, `exceeded`, `no_budget`) is calculated by the backend on demand. The UI only displays it.
+The application follows a three-tier architecture with a React frontend, Python FastAPI backend, and MySQL relational database.
 
-Validation: expense, budget and goal amounts must be greater than zero (HTTP 422 otherwise), and budget calculations never divide by zero.
+Its key design principle is to keep financial calculations and budget-monitoring logic in the backend while providing a simple and interactive experience through the frontend.
 
-## Accounts and the demo
-- Sign up with a name, a username (letters, numbers, `.` and `_`) and a password of at least 6 characters. Passwords are stored as salted PBKDF2 hashes (`backend/app/security.py`); the API uses signed bearer tokens.
-- The **Try the demo** button calls `POST /auth/demo`. The demo user (username `demo`, password `demo1234`) is created or refreshed on every call, so it always has this month's expenses, budgets (one "low" and one "exceeded" alert), last month's history and three savings goals. The demo account is shared, so changes made in it are visible to other demo visitors.
+## The Problem
 
-## Environment variables
-| Variable | Used by | Purpose |
-| --- | --- | --- |
-| `DATABASE_URL` | app | PostgreSQL URL. `postgres://` and `postgresql://` are converted to the psycopg2 driver automatically. |
-| `SECRET_KEY` | app | Signs login tokens. Set a long random value in production. |
-| `DB_SSL` | app | `true` when connecting over the public internet (Render External URL). |
-| `STATIC_DIR` | app | Folder with the built UI. `static` in the Docker image. |
-| `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` | Docker Compose | Database container settings. |
-| `FRONTEND_ORIGIN` | app | Extra CORS origin, only needed when the UI runs separately (`npm run dev`). |
+Managing personal finances becomes difficult when expenses are recorded in different places and monthly budgets are tracked manually.
 
-Copy `.env.example` to `.env` for local Docker runs. `.env` is git-ignored and must never be committed.
+Common challenges include:
 
-## Architecture
+- Losing track of daily spending.
+- Difficulty identifying high-spending categories.
+- Exceeding monthly budgets without noticing.
+- Comparing actual expenses against planned budgets.
+- Maintaining consistent savings goals.
 
-Three tiers. The UI and API ship in one container, the database in another:
+## The Solution
 
-- **Presentation:** React + Vite, plain CSS, Recharts (`frontend/`).
-- **Application:** FastAPI with routers, a service layer, Pydantic schemas and SQLAlchemy models (`backend/`). Routers validate input and call services; all business logic is in `services/`.
-- **Data:** PostgreSQL 16, accessed only through the SQLAlchemy 2.x ORM.
+FinTrack addresses these challenges through an integrated expense and budget management system.
 
+It records daily transactions, organizes them into categories, calculates monthly spending, compares expenses against allocated budgets, and displays alerts when spending approaches or exceeds a budget.
+
+Users can also create savings goals and monitor their progress through the application.
+
+---
+
+## Key Features
+
+### 1. Expense Management
+- Record daily expenses with amount, category, date, and description.
+- Create, view, update, and delete transactions.
+- Filter expenses by month and category.
+- Maintain transaction records in MySQL.
+
+### 2. Category-Based Budget Management
+- Set individual monthly budgets for expense categories.
+- Maintain separate budgets for different months and years.
+- Update existing category budgets.
+- View allocated, spent, and remaining amounts.
+
+### 3. Intelligent Budget Monitoring
+FinTrack evaluates budget utilization in the backend whenever relevant expense information changes.
+
+| Budget condition | Status | UI indication |
+|---|---|---|
+| Less than 90% utilized | OK | Green |
+| 90% to 100% utilized | LOW | Amber |
+| More than 100% utilized | EXCEEDED | Red |
+| No budget configured | NO_BUDGET | Informational |
+
+**Calculation logic:**
+
+Remaining Amount = Allocated Budget − Total Spending
+
+Budget Utilization (%) = (Total Spending / Allocated Budget) × 100
+
+The backend determines the alert status and returns it as part of the API response. The frontend is responsible only for displaying the result.
+
+### 4. Financial Reports and Analytics
+- View total spending for a selected month.
+- Compare category-wise actual spending against allocated budgets.
+- Monitor remaining budget amounts.
+- Visualize budget utilization through interactive charts using Recharts.
+
+### 5. Savings Goal Tracking
+- Create savings goals with target amounts.
+- Record contributions towards goals.
+- Track current savings and remaining amounts.
+- Visualize progress using progress indicators.
+
+### 6. Centralized Dashboard
+- Monthly financial overview.
+- Expense summaries.
+- Category-wise budget information.
+- Budget alerts.
+- Recent transactions.
+- Savings goal progress.
+
+---
+
+## System Architecture
+
+FinTrack follows a **three-tier architecture** to maintain separation of responsibilities, modularity, and maintainability.
+
+```mermaid
+flowchart TD
+    U[User] --> FE
+
+    subgraph Presentation Layer
+        FE[React + Vite Frontend]
+        UI[Dashboard, Expenses, Budgets, Reports, Goals]
+        FE --> UI
+    end
+
+    FE <-->|HTTP / JSON REST APIs| API
+
+    subgraph Application Layer
+        API[FastAPI Backend]
+        ROUTES[API Routers]
+        SERVICES[Business Logic Services]
+        ORM[SQLAlchemy ORM]
+
+        API --> ROUTES
+        ROUTES --> SERVICES
+        SERVICES --> ORM
+    end
+
+    ORM <-->|SQL Operations| DB
+
+    subgraph Data Layer
+        DB[(MySQL 8 Database)]
+        TABLES[Users, Categories, Expenses, Budgets, Savings Goals]
+        DB --> TABLES
+    end
+
+    DOCKER[Docker Compose] -. Packages and runs services .-> FE
+    DOCKER -.-> API
+    DOCKER -.-> DB
 ```
-fintrack/
-├── Dockerfile          (builds the UI, then the backend that serves it)
-├── docker-compose.yml
-├── render.yaml         (Render Blueprint: web service + PostgreSQL)
-├── README.md
-├── .env.example
+
+### Architecture Responsibilities
+
+| Layer | Technology | Responsibility |
+|---|---|---|
+| Presentation | React + Vite | User interaction and data visualization |
+| Application | FastAPI | REST APIs, validation, and business logic |
+| Service | Python | Expense calculations, budget evaluation, and reports |
+| Persistence | SQLAlchemy ORM | Database queries and object-relational mapping |
+| Data | MySQL 8 | Persistent relational data storage |
+| Deployment | Docker Compose | Containerized application execution |
+
+### Why This Architecture?
+
+- **Separation of concerns:** Each layer has a clearly defined responsibility.
+- **Maintainability:** Backend business logic is separated from HTTP routes.
+- **Data consistency:** Financial calculations are handled centrally in the backend.
+- **Modularity:** New features can be added without restructuring the entire application.
+- **Portability:** Docker Compose provides a consistent execution environment.
+
+---
+
+## Application Workflow
+
+The following workflow explains how an expense moves through the application.
+
+```mermaid
+flowchart TD
+    A([User Opens FinTrack]) --> B[Dashboard]
+    B --> C[Add Daily Expense]
+    C --> D[React Sends REST Request]
+    D --> E[FastAPI Validates Request]
+    E --> F[SQLAlchemy Stores Expense]
+    F --> G[Calculate Monthly Category Spending]
+    G --> H[Retrieve Matching Monthly Budget]
+    H --> I{Evaluate Budget Status}
+
+    I -->|Below 90%| J[OK]
+    I -->|90% to 100%| K[LOW]
+    I -->|Above 100%| L[EXCEEDED]
+    I -->|No Budget| M[NO_BUDGET]
+
+    J --> N[Return JSON Response]
+    K --> N
+    L --> N
+    M --> N
+
+    N --> O[Update Frontend Dashboard]
+    O --> P[Display Spending and Alerts]
+```
+
+### Example Budget Evaluation
+
+Consider a monthly Food budget of ₹5,000.
+
+| Total spending | Remaining | Result |
+|---:|---:|---|
+| ₹2,000 | ₹3,000 | OK |
+| ₹4,000 | ₹1,000 | OK |
+| ₹4,500 | ₹500 | LOW |
+| ₹5,000 | ₹0 | LOW |
+| ₹5,500 | -₹500 | EXCEEDED |
+
+This evaluation is performed by the backend using monthly category-wise expense aggregation.
+
+---
+
+## Database Design
+
+FinTrack uses MySQL 8 with SQLAlchemy 2.x ORM.
+
+The relational database contains the following entities:
+
+| Table | Description |
+|---|---|
+| users | Stores user records |
+| categories | Stores expense categories |
+| expenses | Stores individual expense transactions |
+| budgets | Stores category-wise monthly budgets |
+| savings_goals | Stores savings targets and current progress |
+
+### Entity Relationships
+
+```mermaid
+erDiagram
+    USERS ||--o{ CATEGORIES : owns
+    USERS ||--o{ EXPENSES : records
+    USERS ||--o{ BUDGETS : sets
+    USERS ||--o{ SAVINGS_GOALS : creates
+    CATEGORIES ||--o{ EXPENSES : classifies
+    CATEGORIES ||--o{ BUDGETS : assigned_to
+
+    USERS {
+        int id PK
+        string name
+        string email
+    }
+
+    CATEGORIES {
+        int id PK
+        int user_id FK
+        string name
+    }
+
+    EXPENSES {
+        int id PK
+        int user_id FK
+        int category_id FK
+        decimal amount
+        date spent_on
+        string description
+    }
+
+    BUDGETS {
+        int id PK
+        int user_id FK
+        int category_id FK
+        decimal amount
+        int month
+        int year
+    }
+
+    SAVINGS_GOALS {
+        int id PK
+        int user_id FK
+        string name
+        decimal target_amount
+        decimal current_amount
+    }
+```
+
+### Database Design Considerations
+
+- Primary and foreign keys maintain relational integrity.
+- Financial values use decimal-based database types.
+- Monthly budgets are identified using category, month, and year.
+- A uniqueness constraint prevents duplicate budgets for the same category and month.
+- SQLAlchemy ORM manages database interactions.
+
+**User model note:** The current implementation uses a single default user. Authentication and multi-user session management are not part of the current application.
+
+---
+
+## REST API Documentation
+
+The frontend communicates with FastAPI through JSON-based REST endpoints.
+
+Interactive API documentation is available through Swagger UI.
+
+**Swagger URL:** `http://localhost:8000/docs`
+
+### API Endpoint Reference
+
+| Module | Method | Endpoint | Purpose |
+|---|---|---|---|
+| Health | GET | `/health` | Check backend availability |
+| Categories | GET | `/categories` | Retrieve categories |
+| Categories | POST | `/categories` | Create a category |
+| Expenses | GET | `/expenses` | Retrieve expenses |
+| Expenses | POST | `/expenses` | Add an expense |
+| Expenses | PUT | `/expenses/{id}` | Update an expense |
+| Expenses | DELETE | `/expenses/{id}` | Delete an expense |
+| Budgets | GET | `/budgets` | Retrieve monthly budgets |
+| Budgets | PUT | `/budgets` | Create or update a budget |
+| Alerts | GET | `/alerts` | Retrieve budget statuses |
+| Reports | GET | `/reports/monthly-total` | Retrieve monthly spending |
+| Reports | GET | `/reports/budget-vs-spend` | Compare budget and spending |
+| Goals | GET | `/goals` | Retrieve savings goals |
+| Goals | POST | `/goals` | Create a savings goal |
+| Goals | PATCH | `/goals/{id}/contribute` | Add a savings contribution |
+
+### Example API Request
+
+Create an expense:
+
+```http
+POST /expenses
+Content-Type: application/json
+```
+
+```json
+{
+  "category_id": 1,
+  "amount": "250.00",
+  "spent_on": "2026-11-27",
+  "description": "Lunch"
+}
+```
+
+Create or update a monthly budget:
+
+```http
+PUT /budgets
+Content-Type: application/json
+```
+
+```json
+{
+  "category_id": 1,
+  "month": 11,
+  "year": 2026,
+  "amount": "5000.00"
+}
+```
+
+Retrieve budget alerts:
+
+```http
+GET /alerts?month=2026-11
+```
+
+All API requests are validated by the backend before database operations are performed.
+
+---
+
+## Project Structure
+
+```text
+FinTrack/
+│
 ├── backend/
-│   ├── requirements.txt
-│   ├── seed.py
 │   ├── app/
-│   │   ├── main.py, database.py, config.py
-│   │   ├── models/     (user, category, expense, budget, savings_goal)
-│   │   ├── schemas/    (expense, category, budget, report, savings_goal)
-│   │   ├── services/   (expense, budget, alert, report, goal)
-│   │   └── routers/    (auth, categories, expenses, budgets, alerts, reports, goals, importer)
-│   └── tests/          (conftest.py, test_alerts.py, test_auth.py, test_import.py, test_validation_reports.py)
-└── frontend/
-    ├── package.json, vite.config.js, index.html
-    └── src/
-        ├── main.jsx, App.jsx, api.js, styles.css
-        ├── pages/        (Landing, AuthPage, Dashboard, Expenses, Budgets, Reports, Goals, Import)
-        └── components/   (AlertBanner, ExpenseForm, ExpenseList, BudgetForm, BudgetChart, GoalCard)
+│   │   ├── main.py
+│   │   ├── database.py
+│   │   ├── config.py
+│   │   │
+│   │   ├── models/
+│   │   ├── schemas/
+│   │   ├── routers/
+│   │   └── services/
+│   │
+│   ├── tests/
+│   ├── seed.py
+│   ├── requirements.txt
+│   └── Dockerfile
+│
+├── frontend/
+│   ├── src/
+│   │   ├── components/
+│   │   ├── pages/
+│   │   ├── api.js
+│   │   ├── App.jsx
+│   │   └── styles.css
+│   │
+│   ├── package.json
+│   └── Dockerfile
+│
+├── docker-compose.yml
+├── .env.example
+├── .gitignore
+└── README.md
 ```
 
-Every record belongs to one user. The seed script creates or refreshes the shared demo account.
+---
 
-## Prerequisites
+## Technology Stack
+
+| Technology | Usage |
+|---|---|
+| React.js | Component-based frontend |
+| Vite | Frontend development and build tooling |
+| JavaScript | Frontend application logic |
+| CSS3 | Interface styling |
+| Recharts | Financial charts and visualization |
+| Python | Backend programming |
+| FastAPI | REST API framework |
+| Pydantic | Input and output validation |
+| SQLAlchemy 2.x | ORM and database operations |
+| MySQL 8 | Relational database |
+| Uvicorn | ASGI application server |
+| Docker | Application containerization |
+| Docker Compose | Multi-container orchestration |
+| Pytest | Backend testing |
+
+---
+
+## Installation and Execution
+
+### Prerequisites
 
 - Docker
 - Docker Compose
 
-## How to run
+### Step 1: Clone the Repository
+
+```bash
+git clone https://github.com/Shubhashree-Badiger/FinTrack.git
+cd FinTrack
+```
+
+### Step 2: Configure Environment Variables
+
+Copy the example configuration:
 
 ```bash
 cp .env.example .env
+```
+
+For Windows PowerShell:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Review the environment variables and configure them as required.
+
+### Step 3: Build and Run
+
+```bash
 docker compose up --build
 ```
 
-- UI and API (same address): http://localhost:8000
-- Swagger: http://localhost:8000/docs
+Docker Compose starts the frontend, backend, and MySQL services.
 
-The backend waits for the PostgreSQL healthcheck, creates the tables, and seeds demo data on start.
+### Step 4: Access the Application
 
-## Seeding demo data
+| Service | URL |
+|---|---|
+| Frontend | http://localhost:5173 |
+| Backend | http://localhost:8000 |
+| API Documentation | http://localhost:8000/docs |
+| Health Check | http://localhost:8000/health |
 
-The app container runs `python seed.py` on every start. It is idempotent: it creates or refreshes the demo account (username `demo`) with categories, budgets, expenses for the current and previous month, and savings goals, without duplicating anything that already exists. It also upgrades older databases that were created before login existed. To run it manually:
-
-```bash
-docker compose exec app python seed.py
-```
-
-To start from scratch, remove the database volume: `docker compose down -v`.
-
-## API summary
-
-All endpoints except `/health` and `/auth/register`, `/auth/login`, `/auth/demo` need the header `Authorization: Bearer <token>`.
-
-| Method | Path | Purpose |
-| --- | --- | --- |
-| GET | `/health` | Liveness check |
-| POST | `/auth/register` | Create an account, returns a token |
-| POST | `/auth/login` | Sign in, returns a token |
-| POST | `/auth/demo` | Sign in as the demo user |
-| GET | `/import/template` | Download the CSV template (no login needed) |
-| POST | `/import/expenses?dry_run=true` | Validate CSV text and return a preview. Use `dry_run=false` to save |
-| GET | `/auth/me` | Current user |
-| GET, POST | `/categories` | List or create categories |
-| GET | `/expenses?month=YYYY-MM&category_id=` | List expenses with optional filters |
-| POST | `/expenses` | Create an expense (response includes `alert`) |
-| PUT | `/expenses/{id}` | Update an expense (response includes `alert`) |
-| DELETE | `/expenses/{id}` | Delete an expense |
-| GET | `/budgets?month=YYYY-MM` | List budgets for a month |
-| PUT | `/budgets` | Upsert a budget by category, month and year |
-| GET | `/alerts?month=YYYY-MM` | Alert status for each category with a budget |
-| GET | `/reports/monthly-total?month=YYYY-MM` | Total spend for the month |
-| GET | `/reports/budget-vs-spend?month=YYYY-MM` | Budget, spent, remaining and status per category |
-| GET, POST | `/goals` | List or create savings goals |
-| PATCH | `/goals/{id}/contribute` | Add an amount to a goal |
-
-Sample requests (replace the month with the current one):
+### Step 5: Stop the Application
 
 ```bash
-curl http://localhost:8000/health
-TOKEN=$(curl -s -X POST http://localhost:8000/auth/demo | python -c "import sys,json;print(json.load(sys.stdin)['token'])")
-
-curl -H "Authorization: Bearer $TOKEN" "http://localhost:8000/alerts?month=2026-11"
-
-curl -X POST http://localhost:8000/expenses -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"category_id": 1, "amount": "25.50", "spent_on": "2026-11-10", "description": "Lunch"}'
-
-curl -X PUT http://localhost:8000/budgets -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"category_id": 1, "month": 11, "year": 2026, "amount": "500"}'
+docker compose down
 ```
 
-## Manual test checklist
-1. Open http://localhost:8000. You should see the landing page.
-2. Click **Try the demo**. The dashboard shows rupee amounts, a red "Entertainment: budget exceeded" alert and an amber "Food: almost out" alert. Click the x on an alert and confirm it disappears.
-3. Press **Add expense** (or the + button on a phone), add an expense, and confirm a message appears and the dashboard totals update. On the Expenses page, delete an expense and confirm the alerts refresh.
-4. Go to Budgets, change a budget, then switch the month and confirm budgets are independent per month.
-5. Open Reports and confirm the table and chart match the data. Choose a month with no data and confirm the "Nothing to chart yet" message.
-6. Go to Goals, create a savings goal, add money, and confirm the progress bar.
-7. Go to Import, click **Download template**, open it, then upload it back. Confirm the preview shows 5 rows, press **Import 5 expenses** and check them under Expenses (use the month in the file, November 2026). Upload the same file again and confirm it reports 5 duplicates and nothing new to import.
-8. Sign out, click **Get started** and create an account. Confirm the dashboard shows the "Your account is ready" steps and no data from the demo.
-9. In the new account: set a Food budget of 1000, add Food expenses of 500 (on track), then 410 (amber, 9% left), then 100 (red, exceeded).
-10. Sign out, sign in again with the same username and password. Try a wrong password and confirm "Invalid username or password".
-11. Install as an app: in Chrome or Edge open the site and click **Install app** (sidebar, or the install icon in the address bar). On an iPhone use Share, then Add to Home Screen. Open the installed app and confirm it opens full screen with its own icon. Resize the window below 860 px (or open it on a phone) and confirm the bottom tab bar appears.
-12. API check: open http://localhost:8000/docs, call `GET /expenses?month=2026-11` without a token and confirm HTTP 401.
-13. Run the backend tests: `docker compose exec app pytest` (expected: all pass).
+To remove containers and the database volume:
 
-## Importing expenses (CSV format)
-| Column | Required | Notes |
-| --- | --- | --- |
-| `date` | yes | `2026-11-05`, `05/11/2026` or `05-11-2026`. Bank names such as `Txn Date` also work. |
-| `amount` | yes | `1250.50`, `1,250.50` or `â‚¹ 1250`. Bank names such as `Debit` or `Withdrawal Amt` also work. Empty or zero rows (credits) are skipped. |
-| `category` | no | Matched ignoring case. A new name creates a new category. If empty, it is guessed from the description (Swiggy becomes Food, Uber becomes Transport) or set to Other. |
-| `description` | no | Also matched from `Narration`, `Particulars` or `Remarks`. |
-
-Up to 2000 rows per file. A row with the same date, amount and description as an existing expense is skipped as a duplicate.
-## Deploying on Render
-The UI and API run as one web service, so there is a single URL and no CORS or `VITE_API_URL` setup.
-
-**Option A: Blueprint (fastest).** In Render choose New, then Blueprint, and select this repo. `render.yaml` creates the `fintrack-db` PostgreSQL database and the `fintrack` web service and wires `DATABASE_URL` between them.
-
-**Option B: manually.**
-1. Create the database: New, then PostgreSQL. Name it `fintrack-db`, pick a region, and wait until it is Available. Copy the **Internal Database URL**.
-2. Create the web service: New, then Web Service, connect this repo. Runtime Docker, **Root Directory empty** (the repo root), Dockerfile Path `./Dockerfile`, same region as the database. Health Check Path `/health`.
-3. Environment variables: `DATABASE_URL` is the Internal Database URL (`postgres://` is converted automatically); `SECRET_KEY` is a long random string (the Blueprint generates one). Set `DB_SSL=true` only if you use the External Database URL.
-
-Open the web service URL to see the UI. The API is on the same address (for example `/health`, `/docs`, `/categories`). The backend creates the tables and seeds demo data on start. Free web services sleep after 15 minutes without traffic, so the first request after a pause can take about a minute. Render's free PostgreSQL instances expire after about 30 days, so check the plan before a deadline.
-
-## Run without Docker
-Needs Python 3.11+, Node 20+ and a running PostgreSQL. The values in `.env` apply to the Docker setup; export `DATABASE_URL` (see `.env.example`) for this mode.
 ```bash
-cd backend && pip install -r requirements.txt && python seed.py && uvicorn app.main:app --port 8000
-cd frontend && npm install && npm run dev      # UI on http://localhost:5173, calls the API on :8000
+docker compose down -v
 ```
-The UI on port 5173 needs `FRONTEND_ORIGIN=http://localhost:5173` (the default) for CORS. To serve the built UI from the backend instead, run `npm run build` and start uvicorn with `STATIC_DIR=../frontend/dist`.
 
-## Troubleshooting
+**Note:** Removing the volume deletes persisted database data.
 
-- **Port already in use (8000):** stop the process using it, or change the left side of the `ports` mapping in `docker-compose.yml`.
-- **Database not ready:** the backend starts only after the PostgreSQL healthcheck passes, which can take up to a minute on the first run. Check progress with `docker compose logs db`.
-- **UI shows a network error:** confirm the app is up at http://localhost:8000/health and check `docker compose logs app`.
-- **Stale data or schema:** run `docker compose down -v` and start again.
+---
+
+## Demo Data
+
+The backend includes a seed script to initialize demonstration data.
+
+On startup, the application initializes the default user and predefined categories. Sample expenses and budgets are inserted for the current month when the database is empty.
+
+To run the seed script manually:
+
+```bash
+docker compose exec backend python seed.py
+```
+
+The seed operation is designed to avoid inserting duplicate demo records when the database is already populated.
+
+---
+
+## Testing and Validation
+
+The application can be validated through backend tests, Swagger UI, and the frontend.
+
+### Backend Test Execution
+
+```bash
+docker compose exec backend pytest -q
+```
+
+### Manual Validation Checklist
+
+1. Start the application using Docker Compose.
+2. Open the dashboard and verify that the application loads.
+3. Add an expense with amount, category, date, and description.
+4. Verify that the expense appears in the transaction list.
+5. Create a monthly budget for a category.
+6. Add expenses until 90% of the budget is utilized.
+7. Verify that the low-budget warning appears.
+8. Add an expense that exceeds the budget.
+9. Verify that the exceeded-budget alert appears.
+10. Switch to another month and verify independent budget records.
+11. Open Reports and compare the monthly totals against recorded expenses.
+12. Verify category-wise spending and budget comparisons.
+13. Create a savings goal and add a contribution.
+14. Verify that savings progress is updated.
+15. Refresh the browser and verify that saved information remains available.
+
+### Important Validation Areas
+
+- Input validation and error handling.
+- Monthly budget separation.
+- Accurate financial calculations.
+- Backend-generated alert statuses.
+- Database persistence.
+- Frontend-backend API communication.
+- Docker service connectivity.
+
+---
+
+## Design and Engineering Decisions
+
+### Why FastAPI?
+FastAPI provides a structured approach to developing Python REST APIs, request validation, and interactive API documentation.
+
+### Why SQLAlchemy?
+SQLAlchemy provides an ORM abstraction that makes relational database operations easier to organize and maintain.
+
+### Why MySQL?
+MySQL provides relational data storage, constraints, and structured queries suitable for financial transaction records.
+
+### Why React?
+React allows the interface to be divided into reusable components and supports dynamic dashboard updates.
+
+### Why Docker Compose?
+Docker Compose simplifies the execution of the frontend, backend, and database as coordinated services.
+
+### Why Backend-Based Budget Evaluation?
+Budget calculations are business rules. Keeping them in the backend ensures that the same evaluation logic is used across API consumers and frontend components.
+
+---
+
+## Current Scope and Future Enhancements
+
+The current version focuses on core expense tracking, monthly budgeting, automated alerts, reports, and savings goals.
+
+Potential future enhancements include:
+
+- User authentication and multi-user support.
+- Email notifications for budget alerts.
+- Group expense sharing.
+- Advanced spending analytics.
+- Expense export functionality.
+- Improved financial trend visualization.
+
+These are possible extensions and are not claimed as implemented features.
+
+---
+
+## Author
+
+**Shubhashree B Badiger**
+
+B.E. – Computer Science and Engineering (Artificial Intelligence and Machine Learning)
+
+Vidyavardhaka College of Engineering, Mysuru
+
+GitHub: [Shubhashree-Badiger](https://github.com/Shubhashree-Badiger)
+
+---
+
+<p align="center">
+  <strong>FinTrack – Track Better. Spend Smarter. Save More.</strong>
+</p>
