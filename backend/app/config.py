@@ -10,5 +10,10 @@ for _prefix in ("postgres://", "postgresql://"):
         break
 # Set DB_SSL=true for databases reached over the public internet (Render's External URL).
 DB_SSL = os.getenv("DB_SSL", "false").lower() == "true"
-DEFAULT_USER_ID = 1  # single default user created by seed.py; there is no login
+# Secret used to sign login tokens. Set a long random value in production.
+SECRET_KEY = os.getenv("SECRET_KEY", "dev-only-secret-change-me")
+TOKEN_TTL_HOURS = int(os.getenv("TOKEN_TTL_HOURS", "72"))
+# Shared demo account used by the "Try the demo" button.
+DEMO_USERNAME = "demo"
+DEMO_PASSWORD = "demo1234"
 FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN", "http://localhost:5173")

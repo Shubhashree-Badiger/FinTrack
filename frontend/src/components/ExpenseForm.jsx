@@ -24,14 +24,14 @@ export default function ExpenseForm({ categories, initial, defaultDate, onSubmit
   return (
     <form className="form" onSubmit={handleSubmit}>
       <label>
-        Amount
-        <input type="number" step="0.01" min="0.01" required value={amount}
+        Amount (₹)
+        <input type="number" step="0.01" min="0.01" required placeholder="e.g. 450" value={amount}
           onChange={(e) => setAmount(e.target.value)} />
       </label>
       <label>
         Category
         <select required value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
-          <option value="">Select…</option>
+          <option value="">Select a category</option>
           {categories.map((c) => (
             <option key={c.id} value={c.id}>{c.name}</option>
           ))}
@@ -41,12 +41,12 @@ export default function ExpenseForm({ categories, initial, defaultDate, onSubmit
         Date
         <input type="date" required value={spentOn} onChange={(e) => setSpentOn(e.target.value)} />
       </label>
-      <label>
+      <label className="grow">
         Description
-        <input type="text" maxLength={255} value={description}
+        <input type="text" maxLength={255} placeholder="What was it for?" value={description}
           onChange={(e) => setDescription(e.target.value)} />
       </label>
-      <button type="submit">{initial ? "Save" : "Add expense"}</button>
+      <button type="submit">{initial ? "Save changes" : "Add expense"}</button>
       {onCancel && (
         <button type="button" className="secondary" onClick={onCancel}>Cancel</button>
       )}

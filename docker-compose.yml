@@ -16,9 +16,16 @@ services:
   app:
     build: .
     environment:
+      SECRET_KEY: ${SECRET_KEY:-dev-only-secret-change-me}
       DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-fintrack}:${POSTGRES_PASSWORD:-fintrackpassword}@db:5432/${POSTGRES_DB:-fintrack}
     ports:
       - "8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
     depends_on:
       db:
         condition: service_healthy

@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "../api.js";
 import GoalCard from "../components/GoalCard.jsx";
+import { Empty, ErrorNote, Loading, PageHeader } from "../components/ui.jsx";
 
 export default function Goals() {
-  const [goals, setGoals] = useState([]);
+  const [goals, setGoals] = useState(null);
   const [name, setName] = useState("");
   const [target, setTarget] = useState("");
   const [deadline, setDeadline] = useState("");
@@ -12,7 +13,6 @@ export default function Goals() {
   const load = useCallback(() => {
     api.getGoals().then(setGoals).catch((e) => setError(e.message));
   }, []);
-
   useEffect(load, [load]);
 
   async function createGoal(e) {
@@ -44,33 +44,43 @@ export default function Goals() {
 
   return (
     <div>
-      {error && <p className="error">{error}</p>}
+      <PageHeader title="Savings goals" subtitle="Set a target and add money as you save." />
+      <ErrorNote message={error} onClose={() => setError("")} />
       <div className="card">
         <h2>New savings goal</h2>
         <form className="form" onSubmit={createGoal}>
-          <label>
-            Name
-            <input type="text" required maxLength={100} value={name}
+          <label className="grow">
+            Goal name
+            <input type="text" required maxLength={100} placeholder="e.g. Emergency fund" value={name}
               onChange={(e) => setName(e.target.value)} />
           </label>
           <label>
-            Target amount
-            <input type="number" step="0.01" min="0.01" required value={target}
+            Target amount (₹)
+            <input type="number" step="0.01" min="0.01" required placeholder="e.g. 50000" value={target}
               onChange={(e) => setTarget(e.target.value)} />
           </label>
           <label>
-            Deadline (optional)
+            Target date (optional)
             <input type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} />
           </label>
           <button type="submit">Create goal</button>
         </form>
       </div>
-      {goals.length === 0 && <p className="muted">No savings goals yet.</p>}
-      <div className="goal-grid">
-        {goals.map((g) => (
-          <GoalCard key={g.id} goal={g} onContribute={contribute} />
-        ))}
-      </div>
+      {goals === null ? (
+        <Loading text="Loading goals..." />
+      ) : goals.length === 0 ? (
+        <div className="card">
+          <Empty icon="goals" title="No savings goals yet">
+            Create your first goal above, for example a trip, a gadget or an emergency fund.
+          </Empty>
+        </div>
+      ) : (
+        <div className="goal-grid">
+          {goals.map((g) => (
+            <GoalCard key={g.id} goal={g} onContribute={contribute} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

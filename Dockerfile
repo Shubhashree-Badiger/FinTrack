@@ -6,6 +6,7 @@ WORKDIR /web
 COPY frontend/package.json ./
 RUN npm install --no-package-lock
 COPY frontend/index.html frontend/vite.config.js ./
+COPY frontend/public ./public
 COPY frontend/src ./src
 RUN npm run build
 

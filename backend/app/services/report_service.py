@@ -4,31 +4,30 @@ from decimal import Decimal
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.config import DEFAULT_USER_ID
 from app.models import Budget, Category
 from app.schemas.report import BudgetVsSpendOut, MonthlyTotalOut
 from app.services import parse_month
 from app.services.alert_service import compute_status, spent_by_category
 
 
-def monthly_total(db: Session, month: str) -> MonthlyTotalOut:
+def monthly_total(db: Session, user_id: int, month: str) -> MonthlyTotalOut:
     """Return the total spending across all categories for a 'YYYY-MM' month."""
     year, mon = parse_month(month)
-    total = sum(spent_by_category(db, year, mon).values(), Decimal("0"))
+    total = sum(spent_by_category(db, user_id, year, mon).values(), Decimal("0"))
     return MonthlyTotalOut(month=month, total=total)
 
 
-def budget_vs_spend(db: Session, month: str) -> list[BudgetVsSpendOut]:
+def budget_vs_spend(db: Session, user_id: int, month: str) -> list[BudgetVsSpendOut]:
     """Return budget, spent, remaining and status for every category in the month."""
     year, mon = parse_month(month)
-    spent = spent_by_category(db, year, mon)
+    spent = spent_by_category(db, user_id, year, mon)
     stmt = (
         select(Category, Budget.amount)
         .outerjoin(
             Budget,
             (Budget.category_id == Category.id) & (Budget.year == year) & (Budget.month == mon),
         )
-        .where(Category.user_id == DEFAULT_USER_ID)
+        .where(Category.user_id == user_id)
         .order_by(Category.name)
     )
     rows = []

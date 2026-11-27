@@ -7,26 +7,47 @@ FinTrack is a web application for tracking daily expenses, setting monthly budge
 Shubhashree B Badiger, B.E. Computer Science (AI & ML), Vidyavardhaka College of Engineering, Mysuru
 
 ## Features
+Accounts:
+- Landing page with an overview of the app, plus **Sign up**, **Sign in** (username and password) and a **Demo** button that opens a ready-made account with data for the current month.
+- Every user has private data. New accounts start empty with default categories.
 
 Core:
-- Log daily expenses and assign each to a category (Food, Transport, Entertainment, Bills, Shopping).
+- Log, edit and delete daily expenses, each in a category (Food, Transport, Entertainment, Bills, Shopping, Health, Other, or your own).
 - Set a monthly budget for each category.
-- UI alerts when a category budget is exceeded.
+- Dismissible UI alerts when a category budget is exceeded.
 - Total spending per month.
 - Spending vs budget per category.
 
 Extras:
 - Different budgets for different months.
 - "Low" alert when 10% or less of a budget is left.
-- Bar chart of budget vs spent (Recharts).
+- Bar chart of budget vs spent (Recharts). Categories with no spending show as zero.
 - Savings goals with contributions and progress bars.
-- React UI with a month selector shared across pages.
+- All amounts in Indian Rupees (₹), loading and empty states on every page, responsive layout.
 
 Alert status (`ok`, `low`, `exceeded`, `no_budget`) is calculated by the backend on demand. The UI only displays it.
 
+Validation: expense, budget and goal amounts must be greater than zero (HTTP 422 otherwise), and budget calculations never divide by zero.
+
+## Accounts and the demo
+- Sign up with a name, a username (letters, numbers, `.` and `_`) and a password of at least 6 characters. Passwords are stored as salted PBKDF2 hashes (`backend/app/security.py`); the API uses signed bearer tokens.
+- The **Try the demo** button calls `POST /auth/demo`. The demo user (username `demo`, password `demo1234`) is created or refreshed on every call, so it always has this month's expenses, budgets (one "low" and one "exceeded" alert), last month's history and three savings goals. The demo account is shared, so changes made in it are visible to other demo visitors.
+
+## Environment variables
+| Variable | Used by | Purpose |
+| --- | --- | --- |
+| `DATABASE_URL` | app | PostgreSQL URL. `postgres://` and `postgresql://` are converted to the psycopg2 driver automatically. |
+| `SECRET_KEY` | app | Signs login tokens. Set a long random value in production. |
+| `DB_SSL` | app | `true` when connecting over the public internet (Render External URL). |
+| `STATIC_DIR` | app | Folder with the built UI. `static` in the Docker image. |
+| `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` | Docker Compose | Database container settings. |
+| `FRONTEND_ORIGIN` | app | Extra CORS origin, only needed when the UI runs separately (`npm run dev`). |
+
+Copy `.env.example` to `.env` for local Docker runs. `.env` is git-ignored and must never be committed.
+
 ## Architecture
 
-Three tiers, each in its own container:
+Three tiers. The UI and API ship in one container, the database in another:
 
 - **Presentation:** React + Vite, plain CSS, Recharts (`frontend/`).
 - **Application:** FastAPI with routers, a service layer, Pydantic schemas and SQLAlchemy models (`backend/`). Routers validate input and call services; all business logic is in `services/`.
@@ -47,17 +68,17 @@ fintrack/
 │   │   ├── models/     (user, category, expense, budget, savings_goal)
 │   │   ├── schemas/    (expense, category, budget, report, savings_goal)
 │   │   ├── services/   (expense, budget, alert, report, goal)
-│   │   └── routers/    (categories, expenses, budgets, alerts, reports, goals)
-│   └── tests/          (conftest.py, test_alerts.py)
+│   │   └── routers/    (auth, categories, expenses, budgets, alerts, reports, goals)
+│   └── tests/          (conftest.py, test_alerts.py, test_auth.py, test_validation_reports.py)
 └── frontend/
     ├── package.json, vite.config.js, index.html
     └── src/
         ├── main.jsx, App.jsx, api.js, styles.css
-        ├── pages/        (Dashboard, Expenses, Budgets, Reports, Goals)
+        ├── pages/        (Landing, AuthPage, Dashboard, Expenses, Budgets, Reports, Goals)
         └── components/   (AlertBanner, ExpenseForm, ExpenseList, BudgetForm, BudgetChart, GoalCard)
 ```
 
-There is no login. A single default user is created by the seed script and owns all records.
+Every record belongs to one user. The seed script creates or refreshes the shared demo account.
 
 ## Prerequisites
 
@@ -78,7 +99,7 @@ The backend waits for the PostgreSQL healthcheck, creates the tables, and seeds 
 
 ## Seeding demo data
 
-The app container runs `python seed.py` on every start. It is idempotent: it inserts the default user, the categories Food/Transport/Entertainment/Bills/Shopping, and sample expenses and budgets for the current month only if the database is empty. To run it manually:
+The app container runs `python seed.py` on every start. It is idempotent: it creates or refreshes the demo account (username `demo`) with categories, budgets, expenses for the current and previous month, and savings goals, without duplicating anything that already exists. It also upgrades older databases that were created before login existed. To run it manually:
 
 ```bash
 docker compose exec app python seed.py
@@ -88,9 +109,15 @@ To start from scratch, remove the database volume: `docker compose down -v`.
 
 ## API summary
 
+All endpoints except `/health` and `/auth/register`, `/auth/login`, `/auth/demo` need the header `Authorization: Bearer <token>`.
+
 | Method | Path | Purpose |
 | --- | --- | --- |
 | GET | `/health` | Liveness check |
+| POST | `/auth/register` | Create an account, returns a token |
+| POST | `/auth/login` | Sign in, returns a token |
+| POST | `/auth/demo` | Sign in as the demo user |
+| GET | `/auth/me` | Current user |
 | GET, POST | `/categories` | List or create categories |
 | GET | `/expenses?month=YYYY-MM&category_id=` | List expenses with optional filters |
 | POST | `/expenses` | Create an expense (response includes `alert`) |
@@ -108,29 +135,31 @@ Sample requests (replace the month with the current one):
 
 ```bash
 curl http://localhost:8000/health
+TOKEN=$(curl -s -X POST http://localhost:8000/auth/demo | python -c "import sys,json;print(json.load(sys.stdin)['token'])")
 
-curl "http://localhost:8000/alerts?month=2026-11"
+curl -H "Authorization: Bearer $TOKEN" "http://localhost:8000/alerts?month=2026-11"
 
-curl -X POST http://localhost:8000/expenses \
+curl -X POST http://localhost:8000/expenses -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"category_id": 1, "amount": "25.50", "spent_on": "2026-11-10", "description": "Lunch"}'
 
-curl -X PUT http://localhost:8000/budgets \
+curl -X PUT http://localhost:8000/budgets -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"category_id": 1, "month": 11, "year": 2026, "amount": "500"}'
 ```
 
 ## Manual test checklist
-
-1. Open the UI at http://localhost:8000 and confirm seeded data appears on the Dashboard.
-2. Go to Expenses, add an expense, and confirm it appears in the list.
-3. Go to Budgets and set a Food budget for the current month.
-4. Add Food expenses until about 90% of the budget is used and confirm the amber "low" alert.
-5. Add one more expense past the budget and confirm the red "exceeded" alert.
-6. Change the month in the selector and confirm budgets and totals are independent per month.
-7. Open Reports and confirm the table and chart match the data.
-8. Go to Goals, create a savings goal, contribute an amount, and confirm the progress bar.
-9. Run the backend tests: `docker compose exec app pytest`.
+1. Open http://localhost:8000. You should see the landing page.
+2. Click **Try the demo**. The dashboard shows ₹ amounts, a red "Entertainment: budget exceeded" alert and an amber "Food: almost out" alert. Click the x on an alert and confirm it disappears.
+3. Go to Expenses, add an expense, and confirm it appears and the totals update. Delete an expense and confirm it asks for confirmation and the alerts refresh.
+4. Go to Budgets, change a budget, then switch the month and confirm budgets are independent per month.
+5. Open Reports and confirm the table and chart match the data. Choose a month with no data and confirm a friendly "Nothing to chart yet" message.
+6. Go to Goals, create a savings goal, add money, and confirm the progress bar.
+7. Sign out, click **Get started** and create an account. Confirm the dashboard shows the "Welcome to FinTrack" steps and no data from the demo.
+8. In the new account: set a Food budget of 1000, add Food expenses of 500 (On track), then 410 (amber, 9% left), then 100 (red, exceeded).
+9. Sign out, sign in again with the same username and password. Try a wrong password and confirm "Invalid username or password".
+10. API check: open http://localhost:8000/docs, call `GET /expenses?month=2026-11` without a token and confirm HTTP 401.
+11. Run the backend tests: `docker compose exec app pytest` (expected: all pass).
 
 ## Deploying on Render
 The UI and API run as one web service, so there is a single URL and no CORS or `VITE_API_URL` setup.
@@ -140,7 +169,7 @@ The UI and API run as one web service, so there is a single URL and no CORS or `
 **Option B: manually.**
 1. Create the database: New, then PostgreSQL. Name it `fintrack-db`, pick a region, and wait until it is Available. Copy the **Internal Database URL**.
 2. Create the web service: New, then Web Service, connect this repo. Runtime Docker, **Root Directory empty** (the repo root), Dockerfile Path `./Dockerfile`, same region as the database. Health Check Path `/health`.
-3. Environment variable `DATABASE_URL`: the Internal Database URL (`postgres://` is converted automatically). Set `DB_SSL=true` only if you use the External Database URL.
+3. Environment variables: `DATABASE_URL` is the Internal Database URL (`postgres://` is converted automatically); `SECRET_KEY` is a long random string (the Blueprint generates one). Set `DB_SSL=true` only if you use the External Database URL.
 
 Open the web service URL to see the UI. The API is on the same address (for example `/health`, `/docs`, `/categories`). The backend creates the tables and seeds demo data on start. Free web services sleep after 15 minutes without traffic, so the first request after a pause can take about a minute. Render's free PostgreSQL instances expire after about 30 days, so check the plan before a deadline.
 

@@ -9,15 +9,17 @@ from fastapi.staticfiles import StaticFiles
 
 from app import models  # noqa: F401  (registers tables on Base.metadata)
 from app.config import FRONTEND_ORIGIN
-from app.database import Base, engine
-from app.routers import alerts, budgets, categories, expenses, goals, reports
+from app.database import engine
+from app.migrations import upgrade_schema
+from app.routers import alerts, auth, budgets, categories, expenses, goals, reports
 from app.services import ConflictError, NotFoundError
+from app.services.auth_service import AuthError
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    """Create database tables on startup."""
-    Base.metadata.create_all(bind=engine)
+    """Create or upgrade the database tables on startup."""
+    upgrade_schema(engine)
     yield
 
 
@@ -43,6 +45,13 @@ async def conflict_handler(_: Request, exc: ConflictError) -> JSONResponse:
     return JSONResponse(status_code=409, content={"detail": str(exc)})
 
 
+@app.exception_handler(AuthError)
+async def auth_handler(_: Request, exc: AuthError) -> JSONResponse:
+    """Translate AuthError into HTTP 401."""
+    return JSONResponse(status_code=401, content={"detail": str(exc)})
+
+
+app.include_router(auth.router)
 app.include_router(categories.router)
 app.include_router(expenses.router)
 app.include_router(budgets.router)

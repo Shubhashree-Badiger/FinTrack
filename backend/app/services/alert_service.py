@@ -4,7 +4,6 @@ from decimal import Decimal
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.config import DEFAULT_USER_ID
 from app.models import Budget, Category, Expense
 from app.schemas.report import AlertOut
 from app.services import month_bounds, parse_month
@@ -20,6 +19,8 @@ def compute_status(budget: Decimal | None, spent: Decimal) -> tuple[str, Decimal
     """
     if budget is None:
         return "no_budget", None
+    if budget <= 0:  # guard against division by zero; a zero budget is exceeded by any spending
+        return ("exceeded" if spent > 0 else "ok"), None
     remaining_pct = (budget - spent) / budget * 100
     if spent > budget:
         return "exceeded", remaining_pct
@@ -28,12 +29,12 @@ def compute_status(budget: Decimal | None, spent: Decimal) -> tuple[str, Decimal
     return "ok", remaining_pct
 
 
-def spent_by_category(db: Session, year: int, month: int) -> dict[int, Decimal]:
+def spent_by_category(db: Session, user_id: int, year: int, month: int) -> dict[int, Decimal]:
     """Return total spending per category id for the given month."""
     start, end = month_bounds(year, month)
     stmt = (
         select(Expense.category_id, func.sum(Expense.amount))
-        .where(Expense.user_id == DEFAULT_USER_ID, Expense.spent_on >= start, Expense.spent_on < end)
+        .where(Expense.user_id == user_id, Expense.spent_on >= start, Expense.spent_on < end)
         .group_by(Expense.category_id)
     )
     return {category_id: Decimal(total) for category_id, total in db.execute(stmt)}
@@ -56,25 +57,25 @@ def build_alert(
     )
 
 
-def get_category_alert(db: Session, category: Category, year: int, month: int) -> AlertOut:
+def get_category_alert(db: Session, user_id: int, category: Category, year: int, month: int) -> AlertOut:
     """Return the current alert status of one category for a month."""
     budget = db.scalar(
         select(Budget.amount).where(
             Budget.category_id == category.id, Budget.year == year, Budget.month == month
         )
     )
-    spent = spent_by_category(db, year, month).get(category.id, Decimal("0"))
+    spent = spent_by_category(db, user_id, year, month).get(category.id, Decimal("0"))
     return build_alert(category, budget, spent, year, month)
 
 
-def list_alerts(db: Session, month: str) -> list[AlertOut]:
+def list_alerts(db: Session, user_id: int, month: str) -> list[AlertOut]:
     """Return the alert status of every category that has a budget in the month."""
     year, mon = parse_month(month)
-    spent = spent_by_category(db, year, mon)
+    spent = spent_by_category(db, user_id, year, mon)
     stmt = (
         select(Category, Budget.amount)
         .join(Budget, Budget.category_id == Category.id)
-        .where(Category.user_id == DEFAULT_USER_ID, Budget.year == year, Budget.month == mon)
+        .where(Category.user_id == user_id, Budget.year == year, Budget.month == mon)
         .order_by(Category.name)
     )
     return [
