@@ -1,6 +1,7 @@
 // Thin wrapper around the FinTrack REST API. The UI only displays what the API returns.
 // Empty in the combined Docker image (same origin); points at the local API during `npm run dev`.
 const BASE_URL = import.meta.env.VITE_API_URL ?? (import.meta.env.DEV ? "http://localhost:8000" : "");
+export const API_BASE = BASE_URL;
 const TOKEN_KEY = "fintrack_token";
 const USER_KEY = "fintrack_user";
 
@@ -64,6 +65,8 @@ export const api = {
   register: (data) => send("POST", "/auth/register", data),
   login: (data) => send("POST", "/auth/login", data),
   demoLogin: () => send("POST", "/auth/demo", {}),
+  templateUrl: `${BASE_URL}/import/template`,
+  importExpenses: (csv, dryRun) => send("POST", `/import/expenses?dry_run=${dryRun}`, { csv }),
   getCategories: () => request("/categories"),
   createCategory: (data) => send("POST", "/categories", data),
   getExpenses: (month, categoryId) =>

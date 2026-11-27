@@ -1,3 +1,4 @@
+import { useId } from "react";
 // Custom icon set and the FinTrack logo. Every icon is an inline SVG that inherits the text colour.
 const base = {
   width: 20,
@@ -109,6 +110,40 @@ const paths = {
     </>
   ),
   play: <path d="M8 5.5v13l11-6.5z" />,
+  home: (
+    <>
+      <path d="M4 11l8-7 8 7" />
+      <path d="M6 10v10h12V10" />
+      <path d="M10 20v-5h4v5" />
+    </>
+  ),
+  upload: (
+    <>
+      <path d="M12 16V4" />
+      <path d="M7 9l5-5 5 5" />
+      <path d="M5 20h14" />
+    </>
+  ),
+  download: (
+    <>
+      <path d="M12 4v12" />
+      <path d="M7 11l5 5 5-5" />
+      <path d="M5 20h14" />
+    </>
+  ),
+  more: (
+    <>
+      <circle cx="5" cy="12" r="1.4" fill="currentColor" />
+      <circle cx="12" cy="12" r="1.4" fill="currentColor" />
+      <circle cx="19" cy="12" r="1.4" fill="currentColor" />
+    </>
+  ),
+  file: (
+    <>
+      <path d="M6 3h8l5 5v13H6z" />
+      <path d="M14 3v5h5" />
+    </>
+  ),
   menu: <path d="M4 7h16M4 12h16M4 17h16" />,
 };
 
@@ -122,15 +157,16 @@ export function Icon({ name, size = 20, className = "" }) {
 
 // FinTrack mark: a rounded tile with a rising line that ends in a coin.
 export function Logo({ size = 36 }) {
+  const gid = `ft-${useId().replace(/:/g, "")}`; // unique per instance so hidden copies cannot break the gradient
   return (
     <svg width={size} height={size} viewBox="0 0 48 48" role="img" aria-label="FinTrack logo">
       <defs>
-        <linearGradient id="ft-g" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
-          <stop offset="0" stopColor="#14b88a" />
-          <stop offset="1" stopColor="#3b5bdb" />
+        <linearGradient id={gid} x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stopColor="#1f8a6b" />
+          <stop offset="1" stopColor="#0b4636" />
         </linearGradient>
       </defs>
-      <rect width="48" height="48" rx="13" fill="url(#ft-g)" />
+      <rect width="48" height="48" rx="13" fill={`url(#${gid})`} />
       <path
         d="M9 33l9-9 7 6 9-11"
         fill="none"
@@ -139,8 +175,8 @@ export function Logo({ size = 36 }) {
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      <circle cx="35" cy="16" r="6" fill="#ffd166" />
-      <path d="M32.6 14.2h4.8M32.6 16.4h4.8M33.4 14.2c2.4 0 3 .9 3 1.8s-.9 1.8-3 1.8l2.6 2.4" fill="none" stroke="#7a5200" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="35" cy="16" r="6" fill="#f2b632" />
+      <path d="M32.6 14.2h4.8M32.6 16.4h4.8M33.4 14.2c2.4 0 3 .9 3 1.8s-.9 1.8-3 1.8l2.6 2.4" fill="none" stroke="#6b4600" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }

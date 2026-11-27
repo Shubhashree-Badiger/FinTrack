@@ -11,8 +11,8 @@ from app import models  # noqa: F401  (registers tables on Base.metadata)
 from app.config import FRONTEND_ORIGIN
 from app.database import engine
 from app.migrations import upgrade_schema
-from app.routers import alerts, auth, budgets, categories, expenses, goals, reports
-from app.services import ConflictError, NotFoundError
+from app.routers import alerts, auth, budgets, categories, expenses, goals, importer, reports
+from app.services import BadRequestError, ConflictError, NotFoundError
 from app.services.auth_service import AuthError
 
 
@@ -45,6 +45,12 @@ async def conflict_handler(_: Request, exc: ConflictError) -> JSONResponse:
     return JSONResponse(status_code=409, content={"detail": str(exc)})
 
 
+@app.exception_handler(BadRequestError)
+async def bad_request_handler(_: Request, exc: BadRequestError) -> JSONResponse:
+    """Translate BadRequestError into HTTP 400."""
+    return JSONResponse(status_code=400, content={"detail": str(exc)})
+
+
 @app.exception_handler(AuthError)
 async def auth_handler(_: Request, exc: AuthError) -> JSONResponse:
     """Translate AuthError into HTTP 401."""
@@ -58,6 +64,7 @@ app.include_router(budgets.router)
 app.include_router(alerts.router)
 app.include_router(reports.router)
 app.include_router(goals.router)
+app.include_router(importer.router)
 
 
 @app.get("/health")

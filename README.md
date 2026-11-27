@@ -23,6 +23,8 @@ Extras:
 - "Low" alert when 10% or less of a budget is left.
 - Bar chart of budget vs spent (Recharts). Categories with no spending show as zero.
 - Savings goals with contributions and progress bars.
+- **CSV import:** download a template, upload it (or a bank statement export) and review every row before saving. Categories are guessed from the description, new ones are created, and duplicates are skipped.
+- **Installable app (PWA):** an Install app button, a manifest, icons and a service worker. On phones the layout switches to a top bar with bottom tabs and a centre + button, like a native app.
 - All amounts in Indian Rupees (₹), loading and empty states on every page, responsive layout.
 
 Alert status (`ok`, `low`, `exceeded`, `no_budget`) is calculated by the backend on demand. The UI only displays it.
@@ -68,13 +70,13 @@ fintrack/
 │   │   ├── models/     (user, category, expense, budget, savings_goal)
 │   │   ├── schemas/    (expense, category, budget, report, savings_goal)
 │   │   ├── services/   (expense, budget, alert, report, goal)
-│   │   └── routers/    (auth, categories, expenses, budgets, alerts, reports, goals)
-│   └── tests/          (conftest.py, test_alerts.py, test_auth.py, test_validation_reports.py)
+│   │   └── routers/    (auth, categories, expenses, budgets, alerts, reports, goals, importer)
+│   └── tests/          (conftest.py, test_alerts.py, test_auth.py, test_import.py, test_validation_reports.py)
 └── frontend/
     ├── package.json, vite.config.js, index.html
     └── src/
         ├── main.jsx, App.jsx, api.js, styles.css
-        ├── pages/        (Landing, AuthPage, Dashboard, Expenses, Budgets, Reports, Goals)
+        ├── pages/        (Landing, AuthPage, Dashboard, Expenses, Budgets, Reports, Goals, Import)
         └── components/   (AlertBanner, ExpenseForm, ExpenseList, BudgetForm, BudgetChart, GoalCard)
 ```
 
@@ -117,6 +119,8 @@ All endpoints except `/health` and `/auth/register`, `/auth/login`, `/auth/demo`
 | POST | `/auth/register` | Create an account, returns a token |
 | POST | `/auth/login` | Sign in, returns a token |
 | POST | `/auth/demo` | Sign in as the demo user |
+| GET | `/import/template` | Download the CSV template (no login needed) |
+| POST | `/import/expenses?dry_run=true` | Validate CSV text and return a preview. Use `dry_run=false` to save |
 | GET | `/auth/me` | Current user |
 | GET, POST | `/categories` | List or create categories |
 | GET | `/expenses?month=YYYY-MM&category_id=` | List expenses with optional filters |
@@ -150,17 +154,28 @@ curl -X PUT http://localhost:8000/budgets -H "Authorization: Bearer $TOKEN" \
 
 ## Manual test checklist
 1. Open http://localhost:8000. You should see the landing page.
-2. Click **Try the demo**. The dashboard shows ₹ amounts, a red "Entertainment: budget exceeded" alert and an amber "Food: almost out" alert. Click the x on an alert and confirm it disappears.
-3. Go to Expenses, add an expense, and confirm it appears and the totals update. Delete an expense and confirm it asks for confirmation and the alerts refresh.
+2. Click **Try the demo**. The dashboard shows rupee amounts, a red "Entertainment: budget exceeded" alert and an amber "Food: almost out" alert. Click the x on an alert and confirm it disappears.
+3. Press **Add expense** (or the + button on a phone), add an expense, and confirm a message appears and the dashboard totals update. On the Expenses page, delete an expense and confirm the alerts refresh.
 4. Go to Budgets, change a budget, then switch the month and confirm budgets are independent per month.
-5. Open Reports and confirm the table and chart match the data. Choose a month with no data and confirm a friendly "Nothing to chart yet" message.
+5. Open Reports and confirm the table and chart match the data. Choose a month with no data and confirm the "Nothing to chart yet" message.
 6. Go to Goals, create a savings goal, add money, and confirm the progress bar.
-7. Sign out, click **Get started** and create an account. Confirm the dashboard shows the "Welcome to FinTrack" steps and no data from the demo.
-8. In the new account: set a Food budget of 1000, add Food expenses of 500 (On track), then 410 (amber, 9% left), then 100 (red, exceeded).
-9. Sign out, sign in again with the same username and password. Try a wrong password and confirm "Invalid username or password".
-10. API check: open http://localhost:8000/docs, call `GET /expenses?month=2026-11` without a token and confirm HTTP 401.
-11. Run the backend tests: `docker compose exec app pytest` (expected: all pass).
+7. Go to Import, click **Download template**, open it, then upload it back. Confirm the preview shows 5 rows, press **Import 5 expenses** and check them under Expenses (use the month in the file, November 2026). Upload the same file again and confirm it reports 5 duplicates and nothing new to import.
+8. Sign out, click **Get started** and create an account. Confirm the dashboard shows the "Your account is ready" steps and no data from the demo.
+9. In the new account: set a Food budget of 1000, add Food expenses of 500 (on track), then 410 (amber, 9% left), then 100 (red, exceeded).
+10. Sign out, sign in again with the same username and password. Try a wrong password and confirm "Invalid username or password".
+11. Install as an app: in Chrome or Edge open the site and click **Install app** (sidebar, or the install icon in the address bar). On an iPhone use Share, then Add to Home Screen. Open the installed app and confirm it opens full screen with its own icon. Resize the window below 860 px (or open it on a phone) and confirm the bottom tab bar appears.
+12. API check: open http://localhost:8000/docs, call `GET /expenses?month=2026-11` without a token and confirm HTTP 401.
+13. Run the backend tests: `docker compose exec app pytest` (expected: all pass).
 
+## Importing expenses (CSV format)
+| Column | Required | Notes |
+| --- | --- | --- |
+| `date` | yes | `2026-11-05`, `05/11/2026` or `05-11-2026`. Bank names such as `Txn Date` also work. |
+| `amount` | yes | `1250.50`, `1,250.50` or `â‚¹ 1250`. Bank names such as `Debit` or `Withdrawal Amt` also work. Empty or zero rows (credits) are skipped. |
+| `category` | no | Matched ignoring case. A new name creates a new category. If empty, it is guessed from the description (Swiggy becomes Food, Uber becomes Transport) or set to Other. |
+| `description` | no | Also matched from `Narration`, `Particulars` or `Remarks`. |
+
+Up to 2000 rows per file. A row with the same date, amount and description as an existing expense is skipped as a duplicate.
 ## Deploying on Render
 The UI and API run as one web service, so there is a single URL and no CORS or `VITE_API_URL` setup.
 

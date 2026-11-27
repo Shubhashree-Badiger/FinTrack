@@ -10,6 +10,10 @@ class ConflictError(Exception):
     """Raised when an operation violates a uniqueness rule (mapped to HTTP 409)."""
 
 
+class BadRequestError(Exception):
+    """Raised when uploaded data cannot be used (mapped to HTTP 400)."""
+
+
 def parse_month(month: str) -> tuple[int, int]:
     """Convert a validated 'YYYY-MM' string into a (year, month) tuple."""
     year, mon = month.split("-")
