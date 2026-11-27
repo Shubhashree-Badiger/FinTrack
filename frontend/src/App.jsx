@@ -1,4 +1,6 @@
 import { useState } from "react";
+import Budgets from "./pages/Budgets.jsx";
+import Expenses from "./pages/Expenses.jsx";
 
 const PAGES = [
   { id: "dashboard", label: "Dashboard" },
@@ -43,9 +45,8 @@ export default function App() {
         </label>
       </header>
       <main>
-        <p>
-          {page} – {month}
-        </p>
+        {page === "expenses" && <Expenses month={month} />}
+        {page === "budgets" && <Budgets month={month} />}
       </main>
     </div>
   );
