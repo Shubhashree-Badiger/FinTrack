@@ -132,6 +132,19 @@ curl -X PUT http://localhost:8000/budgets \
 8. Go to Goals, create a savings goal, contribute an amount, and confirm the progress bar.
 9. Run the backend tests: `docker compose exec backend pytest`.
 
+## Deploying on Render (free)
+
+Render has no free MySQL, so use a free MySQL-compatible database such as TiDB Cloud and deploy two Render services from this repo.
+
+1. **Database:** create a free TiDB Cloud cluster and copy its host, port, user, password and database name. Build the URL `mysql+pymysql://USER:PASSWORD@HOST:PORT/DATABASE` (URL-encode special characters in the password).
+2. **Backend (Web Service, Docker):** Root Directory `backend`, Dockerfile Path `./Dockerfile`, Instance Type Free. Environment variables:
+   - `DATABASE_URL`: the URL from step 1
+   - `DB_SSL`: `true`
+   - `FRONTEND_ORIGIN`: the frontend URL from step 3, without a trailing slash
+3. **Frontend (Static Site):** Root Directory `frontend`, Build Command `npm install && npm run build`, Publish Directory `dist`. Environment variable `VITE_API_URL`: the backend URL, without a trailing slash. Redeploy the frontend after changing it, because Vite reads it at build time.
+
+The backend creates the tables and seeds demo data on start. Free web services sleep after 15 minutes without traffic, so the first request after a pause can take about a minute.
+
 ## Troubleshooting
 
 - **Port already in use (5173 or 8000):** stop the process using it, or change the left side of the `ports` mapping in `docker-compose.yml`.
