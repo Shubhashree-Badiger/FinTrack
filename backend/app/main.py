@@ -1,12 +1,15 @@
 """FastAPI application entry point."""
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from app import models  # noqa: F401  (registers tables on Base.metadata)
 from app.config import FRONTEND_ORIGIN
 from app.database import Base, engine
+from app.routers import categories, expenses
+from app.services import ConflictError, NotFoundError
 
 
 @asynccontextmanager
@@ -24,6 +27,22 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.exception_handler(NotFoundError)
+async def not_found_handler(_: Request, exc: NotFoundError) -> JSONResponse:
+    """Translate NotFoundError into HTTP 404."""
+    return JSONResponse(status_code=404, content={"detail": str(exc)})
+
+
+@app.exception_handler(ConflictError)
+async def conflict_handler(_: Request, exc: ConflictError) -> JSONResponse:
+    """Translate ConflictError into HTTP 409."""
+    return JSONResponse(status_code=409, content={"detail": str(exc)})
+
+
+app.include_router(categories.router)
+app.include_router(expenses.router)
 
 
 @app.get("/health")
