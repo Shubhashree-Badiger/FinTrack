@@ -1,6 +1,8 @@
 import { useState } from "react";
 import Budgets from "./pages/Budgets.jsx";
+import Dashboard from "./pages/Dashboard.jsx";
 import Expenses from "./pages/Expenses.jsx";
+import Reports from "./pages/Reports.jsx";
 
 const PAGES = [
   { id: "dashboard", label: "Dashboard" },
@@ -45,6 +47,8 @@ export default function App() {
         </label>
       </header>
       <main>
+        {page === "dashboard" && <Dashboard month={month} />}
+        {page === "reports" && <Reports month={month} />}
         {page === "expenses" && <Expenses month={month} />}
         {page === "budgets" && <Budgets month={month} />}
       </main>
