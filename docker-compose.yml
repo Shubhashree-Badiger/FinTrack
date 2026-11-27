@@ -13,25 +13,14 @@ services:
       timeout: 5s
       retries: 20
       start_period: 10s
-  backend:
-    build: ./backend
+  app:
+    build: .
     environment:
       DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-fintrack}:${POSTGRES_PASSWORD:-fintrackpassword}@db:5432/${POSTGRES_DB:-fintrack}
-      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:5173}
     ports:
       - "8000:8000"
     depends_on:
       db:
         condition: service_healthy
-
-  frontend:
-    build: ./frontend
-    environment:
-      VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
-    ports:
-      - "5173:5173"
-    depends_on:
-      - backend
-
 volumes:
   db_data:

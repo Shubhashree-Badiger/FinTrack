@@ -1,6 +1,6 @@
 # FinTrack – Smart Expense & Savings Management System
 
-FinTrack is a web application for tracking daily expenses, setting monthly budgets per category, and managing savings goals. A FastAPI backend with a PostgreSQL database serves a separate React UI.
+FinTrack is a web application for tracking daily expenses, setting monthly budgets per category, and managing savings goals. A FastAPI backend with a PostgreSQL database and a React UI, packaged and deployed together as one Docker image.
 
 ## Author
 
@@ -34,11 +34,12 @@ Three tiers, each in its own container:
 
 ```
 fintrack/
+├── Dockerfile          (builds the UI, then the backend that serves it)
 ├── docker-compose.yml
+├── render.yaml         (Render Blueprint: web service + PostgreSQL)
 ├── README.md
 ├── .env.example
 ├── backend/
-│   ├── Dockerfile
 │   ├── requirements.txt
 │   ├── seed.py
 │   ├── app/
@@ -49,7 +50,7 @@ fintrack/
 │   │   └── routers/    (categories, expenses, budgets, alerts, reports, goals)
 │   └── tests/          (conftest.py, test_alerts.py)
 └── frontend/
-    ├── Dockerfile, package.json, vite.config.js, index.html
+    ├── package.json, vite.config.js, index.html
     └── src/
         ├── main.jsx, App.jsx, api.js, styles.css
         ├── pages/        (Dashboard, Expenses, Budgets, Reports, Goals)
@@ -70,18 +71,17 @@ cp .env.example .env
 docker compose up --build
 ```
 
-- UI: http://localhost:5173
-- API: http://localhost:8000
+- UI and API (same address): http://localhost:8000
 - Swagger: http://localhost:8000/docs
 
 The backend waits for the PostgreSQL healthcheck, creates the tables, and seeds demo data on start.
 
 ## Seeding demo data
 
-The backend container runs `python seed.py` on every start. It is idempotent: it inserts the default user, the categories Food/Transport/Entertainment/Bills/Shopping, and sample expenses and budgets for the current month only if the database is empty. To run it manually:
+The app container runs `python seed.py` on every start. It is idempotent: it inserts the default user, the categories Food/Transport/Entertainment/Bills/Shopping, and sample expenses and budgets for the current month only if the database is empty. To run it manually:
 
 ```bash
-docker compose exec backend python seed.py
+docker compose exec app python seed.py
 ```
 
 To start from scratch, remove the database volume: `docker compose down -v`.
@@ -122,7 +122,7 @@ curl -X PUT http://localhost:8000/budgets \
 
 ## Manual test checklist
 
-1. Open the UI at http://localhost:5173 and confirm seeded data appears on the Dashboard.
+1. Open the UI at http://localhost:8000 and confirm seeded data appears on the Dashboard.
 2. Go to Expenses, add an expense, and confirm it appears in the list.
 3. Go to Budgets and set a Food budget for the current month.
 4. Add Food expenses until about 90% of the budget is used and confirm the amber "low" alert.
@@ -130,20 +130,31 @@ curl -X PUT http://localhost:8000/budgets \
 6. Change the month in the selector and confirm budgets and totals are independent per month.
 7. Open Reports and confirm the table and chart match the data.
 8. Go to Goals, create a savings goal, contribute an amount, and confirm the progress bar.
-9. Run the backend tests: `docker compose exec backend pytest`.
+9. Run the backend tests: `docker compose exec app pytest`.
 
 ## Deploying on Render
-1. **Database:** in Render choose New, then PostgreSQL. Give it a name (for example `fintrack-db`), pick the same region you will use for the backend, and choose a plan. Once it is Available, open it and copy the **Internal Database URL**.
-2. **Backend (Web Service, Docker):** Root Directory `backend`, Dockerfile Path `./Dockerfile`, same region as the database. Environment variables:
-   - `DATABASE_URL`: the Internal Database URL from step 1 (`postgres://` is converted automatically)
-   - `FRONTEND_ORIGIN`: the frontend URL from step 3, without a trailing slash
-   - `DB_SSL`: set to `true` only if you use the External Database URL (for example when connecting from your own machine)
-3. **Frontend (Static Site):** Root Directory `frontend`, Build Command `npm install && npm run build`, Publish Directory `dist`. Environment variable `VITE_API_URL`: the backend URL, without a trailing slash. Redeploy the frontend after changing it, because Vite reads it at build time.
+The UI and API run as one web service, so there is a single URL and no CORS or `VITE_API_URL` setup.
 
-The backend creates the tables and seeds demo data on start. Free web services sleep after 15 minutes without traffic, so the first request after a pause can take about a minute. Render's free PostgreSQL instances expire after about 30 days, so check the plan before a deadline.
+**Option A: Blueprint (fastest).** In Render choose New, then Blueprint, and select this repo. `render.yaml` creates the `fintrack-db` PostgreSQL database and the `fintrack` web service and wires `DATABASE_URL` between them.
+
+**Option B: manually.**
+1. Create the database: New, then PostgreSQL. Name it `fintrack-db`, pick a region, and wait until it is Available. Copy the **Internal Database URL**.
+2. Create the web service: New, then Web Service, connect this repo. Runtime Docker, **Root Directory empty** (the repo root), Dockerfile Path `./Dockerfile`, same region as the database. Health Check Path `/health`.
+3. Environment variable `DATABASE_URL`: the Internal Database URL (`postgres://` is converted automatically). Set `DB_SSL=true` only if you use the External Database URL.
+
+Open the web service URL to see the UI. The API is on the same address (for example `/health`, `/docs`, `/categories`). The backend creates the tables and seeds demo data on start. Free web services sleep after 15 minutes without traffic, so the first request after a pause can take about a minute. Render's free PostgreSQL instances expire after about 30 days, so check the plan before a deadline.
+
+## Run without Docker
+Needs Python 3.11+, Node 20+ and a running PostgreSQL. The values in `.env` apply to the Docker setup; export `DATABASE_URL` (see `.env.example`) for this mode.
+```bash
+cd backend && pip install -r requirements.txt && python seed.py && uvicorn app.main:app --port 8000
+cd frontend && npm install && npm run dev      # UI on http://localhost:5173, calls the API on :8000
+```
+The UI on port 5173 needs `FRONTEND_ORIGIN=http://localhost:5173` (the default) for CORS. To serve the built UI from the backend instead, run `npm run build` and start uvicorn with `STATIC_DIR=../frontend/dist`.
+
 ## Troubleshooting
 
-- **Port already in use (5173 or 8000):** stop the process using it, or change the left side of the `ports` mapping in `docker-compose.yml`.
+- **Port already in use (8000):** stop the process using it, or change the left side of the `ports` mapping in `docker-compose.yml`.
 - **Database not ready:** the backend starts only after the PostgreSQL healthcheck passes, which can take up to a minute on the first run. Check progress with `docker compose logs db`.
-- **UI shows a network error:** confirm the backend is up at http://localhost:8000/health and that `VITE_API_URL` and `FRONTEND_ORIGIN` in `.env` match the URLs you use in the browser.
+- **UI shows a network error:** confirm the app is up at http://localhost:8000/health and check `docker compose logs app`.
 - **Stale data or schema:** run `docker compose down -v` and start again.

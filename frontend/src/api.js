@@ -1,5 +1,6 @@
 // Thin wrapper around the FinTrack REST API. The UI only displays what the API returns.
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+// Empty in the combined Docker image (same origin); points at the local API during `npm run dev`.
+const BASE_URL = import.meta.env.VITE_API_URL ?? (import.meta.env.DEV ? "http://localhost:8000" : "");
 
 // Turn FastAPI error bodies (string or validation list) into a readable message.
 function errorMessage(body, status) {

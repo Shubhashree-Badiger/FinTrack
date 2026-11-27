@@ -1,9 +1,11 @@
 """FastAPI application entry point."""
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from app import models  # noqa: F401  (registers tables on Base.metadata)
 from app.config import FRONTEND_ORIGIN
@@ -53,3 +55,9 @@ app.include_router(goals.router)
 def health() -> dict:
     """Return a simple liveness response."""
     return {"status": "ok"}
+
+# In the combined Docker image the built React UI is in STATIC_DIR and is served at "/".
+# Mounted last so every API route above takes priority. Absent in tests and API-only runs.
+STATIC_DIR = os.getenv("STATIC_DIR", "static")
+if os.path.isdir(STATIC_DIR):
+    app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="ui")
