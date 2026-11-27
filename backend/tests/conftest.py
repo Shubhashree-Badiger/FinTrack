@@ -31,6 +31,7 @@ def client():
         db.commit()
 
     def override_get_db():
+        """Yield sessions bound to the in-memory database."""
         with Session() as db:
             yield db
 
