@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 from app import models  # noqa: F401  (registers tables on Base.metadata)
 from app.config import FRONTEND_ORIGIN
 from app.database import Base, engine
-from app.routers import alerts, budgets, categories, expenses, reports
+from app.routers import alerts, budgets, categories, expenses, goals, reports
 from app.services import ConflictError, NotFoundError
 
 
@@ -46,6 +46,7 @@ app.include_router(expenses.router)
 app.include_router(budgets.router)
 app.include_router(alerts.router)
 app.include_router(reports.router)
+app.include_router(goals.router)
 
 
 @app.get("/health")
