@@ -10,6 +10,7 @@ from fastapi.staticfiles import StaticFiles
 from app import models  # noqa: F401  (registers tables on Base.metadata)
 from app.config import FRONTEND_ORIGIN
 from app.database import engine
+from app.keep_alive import start_keep_alive
 from app.migrations import upgrade_schema
 from app.routers import alerts, auth, budgets, categories, expenses, goals, importer, reports
 from app.services import BadRequestError, ConflictError, NotFoundError
@@ -18,9 +19,12 @@ from app.services.auth_service import AuthError
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    """Create or upgrade the database tables on startup."""
+    """Create or upgrade the database tables on startup and start the Render keep-alive ping."""
     upgrade_schema(engine)
+    pinger = start_keep_alive()
     yield
+    if pinger:
+        pinger.cancel()
 
 
 app = FastAPI(title="FinTrack API", version="1.0.0", lifespan=lifespan)

@@ -461,6 +461,7 @@ FinTrack/
 │   │   ├── auth.py            (current-user dependency)
 │   │   ├── security.py        (password hashing and tokens)
 │   │   ├── migrations.py      (automatic schema upgrade)
+│   │   ├── keep_alive.py      (pings /health every 14.5 minutes on Render)
 │   │   │
 │   │   ├── models/            (user, category, expense, budget, savings_goal)
 │   │   ├── schemas/           (auth, expense, category, budget, report, savings_goal, importer)
@@ -555,6 +556,7 @@ The default values work for local use. `.env` is git-ignored and must never be c
 | `DB_SSL` | app | `true` when connecting over the public internet (for example Render's External URL) |
 | `STATIC_DIR` | app | Folder with the built UI (`static` inside the Docker image) |
 | `FRONTEND_ORIGIN` | app | Extra CORS origin, only needed when the UI runs separately with `npm run dev` |
+| `KEEP_ALIVE`, `KEEP_ALIVE_URL`, `KEEP_ALIVE_SECONDS` | app | Render keep-alive ping (see *Deploying on Render*). On by default when a public URL is known; `KEEP_ALIVE=false` turns it off |
 
 ### Step 3: Build and Run
 
@@ -610,7 +612,9 @@ The UI and API run as one web service, so there is a single URL.
 2. Create a Web Service from this repository: runtime Docker, **Root Directory empty**, Dockerfile Path `./Dockerfile`, Health Check Path `/health`, same region as the database.
 3. Set the environment variables `DATABASE_URL` (the Internal Database URL) and `SECRET_KEY` (a long random string).
 
-Free web services sleep after 15 minutes without traffic, so the first request after a pause can take about a minute. Render's free PostgreSQL instances expire after about 30 days.
+**Keep-alive:** free web services sleep after 15 minutes without traffic. While the app is running, it calls its own `/health` URL every 14.5 minutes (870 seconds) so it stays awake (`app/keep_alive.py`). Render sets `RENDER_EXTERNAL_URL` automatically, so no setup is needed. The ping cannot wake a service that is already asleep (for example after a restart with no visitors); the first visit wakes it, and from then on it stays awake. One always-on free service uses about 744 of the 750 free instance hours per month.
+
+Render's free PostgreSQL instances expire after about 30 days.
 
 ---
 
