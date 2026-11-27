@@ -1,4 +1,4 @@
-import { Icon, Logo } from "../icons.jsx";
+import { Icon, Logo, Wordmark } from "../icons.jsx";
 import { CAT_COLORS, Ring, SpendBar } from "../components/viz.jsx";
 
 // ---- Product mock-ups built from the same pieces as the real app ----
@@ -89,7 +89,7 @@ export default function Landing({ onLogin, onSignup, onDemo, demoLoading, instal
   return (
     <div className="landing">
       <header className="landing-nav">
-        <div className="brand"><Logo size={32} /><span>FinTrack</span></div>
+        <div className="brand"><Logo size={32} /><Wordmark /></div>
         <nav className="landing-links">
           <a href="#features">Features</a>
           <a href="#import">Import</a>
@@ -202,7 +202,7 @@ export default function Landing({ onLogin, onSignup, onDemo, demoLoading, instal
       </section>
 
       <footer className="landing-footer">
-        <div className="brand"><Logo size={26} /><span>FinTrack</span></div>
+        <div className="brand"><Logo size={26} /><Wordmark /></div>
         <span className="muted small">Made by Shubhashree B Badiger</span>
       </footer>
     </div>

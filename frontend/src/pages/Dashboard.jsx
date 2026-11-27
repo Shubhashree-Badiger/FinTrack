@@ -4,6 +4,7 @@ import { api } from "../api.js";
 import { formatINR, monthLabel } from "../format.js";
 import { Icon } from "../icons.jsx";
 import AlertBanner from "../components/AlertBanner.jsx";
+import Pager, { paginate } from "../components/Pager.jsx";
 import { Empty, ErrorNote, Loading, StatusBadge, UsageBar } from "../components/ui.jsx";
 import { CAT_COLORS, Ring, SpendBar } from "../components/viz.jsx";
 
@@ -24,11 +25,13 @@ function dayLabel(iso) {
 export default function Dashboard({ month, user, go }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
+  const [pg, setPg] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
     setData(null);
     setError("");
+    setPg(0);
     Promise.all([
       api.getAlerts(month),
       api.getBudgetVsSpend(month),
@@ -74,8 +77,10 @@ export default function Dashboard({ month, user, go }) {
     perDay[Number(e.spent_on.slice(8, 10)) - 1].amount += Number(e.amount);
   });
 
+  const RECENT_PAGE = 5;
+  const recent = paginate(expenses, pg, RECENT_PAGE);
   const grouped = [];
-  expenses.slice(0, 8).forEach((e) => {
+  recent.slice.forEach((e) => {
     const label = dayLabel(e.spent_on);
     const last = grouped[grouped.length - 1];
     if (last && last.label === label) last.items.push(e);
@@ -165,7 +170,7 @@ export default function Dashboard({ month, user, go }) {
                       labelFormatter={(d) => `${d} ${monthLabel(month).split(" ")[0]}`}
                       cursor={{ fill: "rgba(15,92,71,0.07)" }}
                     />
-                    <Bar dataKey="amount" fill="#0f5c47" radius={[3, 3, 0, 0]} />
+                    <Bar dataKey="amount" fill="#0f5c47" radius={[3, 3, 0, 0]} isAnimationActive={false} />
                   </BarChart>
                 </ResponsiveContainer>
               </section>
@@ -173,7 +178,7 @@ export default function Dashboard({ month, user, go }) {
               <section className="card">
                 <div className="card-head">
                   <h2>Recent activity</h2>
-                  <button className="link-btn" onClick={() => go("expenses")}>See all</button>
+                  <button className="link-btn" onClick={() => go("expenses")}>Open expenses</button>
                 </div>
                 {expenses.length === 0 ? (
                   <Empty icon="expenses" title="Nothing logged yet">No expenses in {monthLabel(month)}.</Empty>
@@ -196,6 +201,7 @@ export default function Dashboard({ month, user, go }) {
                     </div>
                   ))
                 )}
+                <Pager page={recent.current} pages={recent.pages} total={expenses.length} size={RECENT_PAGE} onChange={setPg} />
               </section>
             </div>
 

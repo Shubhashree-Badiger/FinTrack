@@ -4,6 +4,7 @@ import { formatINR, monthLabel } from "../format.js";
 import AlertBanner from "../components/AlertBanner.jsx";
 import ExpenseForm from "../components/ExpenseForm.jsx";
 import ExpenseList from "../components/ExpenseList.jsx";
+import Pager, { paginate } from "../components/Pager.jsx";
 import { ErrorNote, Loading, PageHeader } from "../components/ui.jsx";
 
 // Default date for the form: today if it falls in the selected month, else the 1st of it.
@@ -19,6 +20,7 @@ export default function Expenses({ month }) {
   const [alerts, setAlerts] = useState([]);
   const [editing, setEditing] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [pg, setPg] = useState(0);
   const [error, setError] = useState("");
 
   // Reload expenses AND alerts together so alerts are never stale after add, edit or delete.
@@ -41,6 +43,7 @@ export default function Expenses({ month }) {
 
   useEffect(() => {
     setLoading(true);
+    setPg(0);
     setEditing(null);
     load();
   }, [load]);
@@ -69,6 +72,8 @@ export default function Expenses({ month }) {
     }
   }
 
+  const PAGE_SIZE = 10;
+  const paged = paginate(expenses, pg, PAGE_SIZE);
   const total = expenses.reduce((s, e) => s + Number(e.amount), 0);
 
   return (
@@ -95,7 +100,10 @@ export default function Expenses({ month }) {
         {loading ? (
           <Loading text="Loading expenses..." />
         ) : (
-          <ExpenseList expenses={expenses} categories={categories} onEdit={setEditing} onDelete={remove} />
+          <>
+            <ExpenseList expenses={paged.slice} categories={categories} onEdit={setEditing} onDelete={remove} />
+            <Pager page={paged.current} pages={paged.pages} total={expenses.length} size={PAGE_SIZE} onChange={setPg} />
+          </>
         )}
       </div>
     </div>

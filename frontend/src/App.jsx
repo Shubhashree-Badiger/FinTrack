@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { api, session } from "./api.js";
 import { useInstall } from "./install.js";
-import { Icon, Logo } from "./icons.jsx";
+import { Icon, Logo, Wordmark } from "./icons.jsx";
 import ExpenseForm from "./components/ExpenseForm.jsx";
+import Notifications from "./components/Notifications.jsx";
 import Sheet from "./components/Sheet.jsx";
 import AuthPage from "./pages/AuthPage.jsx";
 import Budgets from "./pages/Budgets.jsx";
@@ -63,6 +64,7 @@ function Shell({ user, onLogout }) {
   const [moreOpen, setMoreOpen] = useState(false);
   const [categories, setCategories] = useState([]);
   const [toast, setToast] = useState(null);
+  const [alerts, setAlerts] = useState([]);
   const install = useInstall();
 
   const go = (id) => {
@@ -80,6 +82,11 @@ function Shell({ user, onLogout }) {
     const t = setTimeout(() => setToast(null), 4200);
     return () => clearTimeout(t);
   }, [toast]);
+
+  // Alerts feed the notification bell. Reload when the month, page or data changes.
+  useEffect(() => {
+    api.getAlerts(month).then(setAlerts).catch(() => setAlerts([]));
+  }, [month, refresh, page]);
 
   async function openAdd() {
     setAddOpen(true);
@@ -119,7 +126,7 @@ function Shell({ user, onLogout }) {
   return (
     <div className="shell">
       <aside className="sidebar">
-        <div className="brand light"><Logo size={34} /><span>FinTrack</span></div>
+        <div className="brand light"><Logo size={34} /><Wordmark /></div>
         <button className="add-btn" onClick={openAdd}><Icon name="plus" size={18} /> Add expense</button>
         <nav>
           {PAGES.map((p) => (
@@ -143,8 +150,11 @@ function Shell({ user, onLogout }) {
 
       <div className="content">
         <header className="appbar">
-          <div className="brand mobile-brand"><Logo size={30} /><span>FinTrack</span></div>
-          {monthPicker}
+          <div className="brand mobile-brand"><Logo size={30} /><Wordmark /></div>
+          <div className="appbar-right">
+            {monthPicker}
+            <Notifications alerts={alerts} month={month} onOpenBudgets={() => go("budgets")} />
+          </div>
         </header>
         {user.is_demo && (
           <div className="demo-banner">

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { api } from "../api.js";
-import { Icon, Logo } from "../icons.jsx";
+import { Icon, Logo, Wordmark } from "../icons.jsx";
 import { ErrorNote } from "../components/ui.jsx";
 
 // Sign in / create account screen. `mode` is "login" or "signup".
@@ -32,7 +32,7 @@ export default function AuthPage({ mode, setMode, onAuthed, onDemo, demoLoading,
   return (
     <div className="auth-wrap">
       <aside className="auth-side">
-        <div className="brand light"><Logo size={38} /><span>FinTrack</span></div>
+        <div className="brand light"><Logo size={38} /><Wordmark /></div>
         <h2>Your money, finally clear.</h2>
         <ul>
           <li><Icon name="check" size={18} /> Budgets for every category and month</li>

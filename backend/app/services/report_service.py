@@ -1,12 +1,12 @@
 """Business logic for monthly reports."""
 from decimal import Decimal
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.models import Budget, Category
-from app.schemas.report import BudgetVsSpendOut, MonthlyTotalOut
-from app.services import parse_month
+from app.models import Budget, Category, Expense
+from app.schemas.report import BudgetVsSpendOut, MonthlyTotalOut, MonthTotalPoint
+from app.services import month_bounds, parse_month
 from app.services.alert_service import compute_status, spent_by_category
 
 
@@ -45,3 +45,25 @@ def budget_vs_spend(db: Session, user_id: int, month: str) -> list[BudgetVsSpend
             )
         )
     return rows
+
+
+def monthly_trend(db: Session, user_id: int, month: str, months: int) -> list[MonthTotalPoint]:
+    """Return the total spend of each of the last N months ending at `month`, oldest first.
+
+
+    Months without expenses are included with a total of 0 so charts have no gaps.
+    """
+    end_year, end_mon = parse_month(month)
+    index = end_year * 12 + (end_mon - 1)
+    keys = [((index - i) // 12, (index - i) % 12 + 1) for i in range(months - 1, -1, -1)]
+    start = month_bounds(*keys[0])[0]
+    end = month_bounds(*keys[-1])[1]
+    stmt = (
+        select(Expense.spent_on, func.sum(Expense.amount))
+        .where(Expense.user_id == user_id, Expense.spent_on >= start, Expense.spent_on < end)
+        .group_by(Expense.spent_on)
+    )
+    totals = {key: Decimal("0") for key in keys}
+    for day, amount in db.execute(stmt):
+        totals[(day.year, day.month)] += Decimal(amount)
+    return [MonthTotalPoint(month=f"{y:04d}-{m:02d}", total=totals[(y, m)]) for y, m in keys]

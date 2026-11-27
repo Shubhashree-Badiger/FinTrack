@@ -7,7 +7,7 @@ export const CAT_COLORS = ["#0f5c47", "#e0a526", "#3d7ea6", "#c4553d", "#7b6bb0"
 const toneFor = (pct) => (pct >= 100 ? "var(--bad)" : pct >= 90 ? "var(--low)" : "var(--green)");
 
 // Ring showing how much of a budget is used. Over 100% fills the ring and turns red.
-export function Ring({ pct, size = 132, label = "used" }) {
+export function Ring({ pct, size = 132, label = "used", center = null }) {
   const r = 52;
   const c = 2 * Math.PI * r;
   const shown = Math.max(0, Math.min(pct, 100));
@@ -22,8 +22,7 @@ export function Ring({ pct, size = 132, label = "used" }) {
         />
       </svg>
       <div className="ring-text">
-        <strong>{Math.round(pct)}%</strong>
-        <span>{label}</span>
+        {center ?? (<><strong>{Math.round(pct)}%</strong><span>{label}</span></>)}
       </div>
     </div>
   );

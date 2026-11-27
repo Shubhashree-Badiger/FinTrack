@@ -1,6 +1,6 @@
 // FinTrack service worker. Makes the app installable and lets the shell open offline.
 // API calls are never cached: money data must always come fresh from the server.
-const CACHE = "fintrack-shell-v2";
+const CACHE = "fintrack-shell-v3";
 const SHELL = ["/", "/manifest.json", "/favicon.svg", "/icon-192.png", "/icon-512.png"];
 
 self.addEventListener("install", (event) => {

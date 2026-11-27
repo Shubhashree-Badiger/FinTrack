@@ -144,6 +144,51 @@ const paths = {
       <path d="M14 3v5h5" />
     </>
   ),
+  food: (
+    <>
+      <path d="M7 3v8a2 2 0 0 0 2 2v8" />
+      <path d="M5 3v6M9 3v6" />
+      <path d="M17 21V3c-2.2 1.2-3.5 4-3.5 7.5 0 1.4.9 2.5 2.2 2.5H17" />
+    </>
+  ),
+  transport: (
+    <>
+      <rect x="4" y="4" width="16" height="13" rx="3" />
+      <path d="M4 11h16" />
+      <circle cx="8.5" cy="14" r=".6" fill="currentColor" />
+      <circle cx="15.5" cy="14" r=".6" fill="currentColor" />
+      <path d="M7 17v3M17 17v3" />
+    </>
+  ),
+  shopping: (
+    <>
+      <path d="M3 4h2.5l2.2 10.2a1.5 1.5 0 0 0 1.5 1.2h8.2a1.5 1.5 0 0 0 1.5-1.1L20.5 8H6.2" />
+      <circle cx="9.5" cy="19.5" r="1.4" />
+      <circle cx="17" cy="19.5" r="1.4" />
+    </>
+  ),
+  bills: (
+    <>
+      <path d="M6 3h9l4 4v14H6z" />
+      <path d="M9 11h7M9 15h7M9 7h3" />
+    </>
+  ),
+  health: <path d="M12 20s-7.5-4.6-7.5-10A4.3 4.3 0 0 1 12 7.4 4.3 4.3 0 0 1 19.5 10c0 5.4-7.5 10-7.5 10z" />,
+  entertainment: (
+    <>
+      <rect x="3" y="5" width="18" height="14" rx="3" />
+      <path d="M10 9.5v5l4.5-2.5z" />
+    </>
+  ),
+  other: (
+    <>
+      <rect x="4" y="4" width="6.5" height="6.5" rx="1.5" />
+      <rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5" />
+      <rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5" />
+      <rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5" />
+    </>
+  ),  "chevron-left": <path d="M15 5l-7 7 7 7" />,
+  "chevron-right": <path d="M9 5l7 7-7 7" />,
   menu: <path d="M4 7h16M4 12h16M4 17h16" />,
 };
 
@@ -155,28 +200,45 @@ export function Icon({ name, size = 20, className = "" }) {
   );
 }
 
-// FinTrack mark: a rounded tile with a rising line that ends in a coin.
+// FinTrack mark: a flowing "F" ending in a coin dot, with a progress bar. Drawn on a dark tile.
 export function Logo({ size = 36 }) {
   const gid = `ft-${useId().replace(/:/g, "")}`; // unique per instance so hidden copies cannot break the gradient
   return (
-    <svg width={size} height={size} viewBox="0 0 48 48" role="img" aria-label="FinTrack logo">
+    <svg width={size} height={size} viewBox="0 0 100 100" role="img" aria-label="FinTrack logo">
       <defs>
-        <linearGradient id={gid} x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
-          <stop offset="0" stopColor="#1f8a6b" />
-          <stop offset="1" stopColor="#0b4636" />
+        <linearGradient id={gid} x1="20" y1="20" x2="80" y2="80" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stopColor="#5cf2c2" />
+          <stop offset="1" stopColor="#1c9b78" />
         </linearGradient>
       </defs>
-      <rect width="48" height="48" rx="13" fill={`url(#${gid})`} />
-      <path
-        d="M9 33l9-9 7 6 9-11"
-        fill="none"
-        stroke="#fff"
-        strokeWidth="3.4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <circle cx="35" cy="16" r="6" fill="#f2b632" />
-      <path d="M32.6 14.2h4.8M32.6 16.4h4.8M33.4 14.2c2.4 0 3 .9 3 1.8s-.9 1.8-3 1.8l2.6 2.4" fill="none" stroke="#6b4600" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" />
+      <rect width="100" height="100" rx="22" fill="#23263a" />
+      <g fill="none" stroke={`url(#${gid})`} strokeWidth="7.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M62 25H42Q31 25 31 36V61Q31 75 43 75Q51 75 51 68Q51 62 44 62" />
+        <path d="M36 53C54 59 71 50 78 32" />
+      </g>
+      <circle cx="80" cy="27.5" r="5" fill="#5cf2c2" />
+      <rect x="57" y="70" width="31" height="9" rx="4.5" fill="none" stroke="#35c99f" strokeWidth="2" />
+      <rect x="59.5" y="72.5" width="15" height="4" rx="2" fill="#7df5cf" />
     </svg>
   );
+}
+
+// "FinTrack" written like the logo: Fin in the text colour, Track in teal.
+export function Wordmark() {
+  return (
+    <span className="wordmark">
+      Fin<b>Track</b>
+    </span>
+  );
+}
+// Picks an icon for a category name (custom categories fall back to a generic one).
+export function categoryIconName(name = "") {
+  const n = name.toLowerCase();
+  if (/food|grocer|dining|eat|restaurant/.test(n)) return "food";
+  if (/transport|travel|fuel|cab|metro/.test(n)) return "transport";
+  if (/shop|cloth|fashion/.test(n)) return "shopping";
+  if (/bill|rent|utilit|electric|insurance/.test(n)) return "bills";
+  if (/health|medic|pharma|gym/.test(n)) return "health";
+  if (/entertain|movie|fun|game|ott/.test(n)) return "entertainment";
+  return "other";
 }

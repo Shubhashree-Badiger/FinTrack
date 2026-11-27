@@ -73,3 +73,16 @@ def test_demo_login_has_current_data(raw_client):
     count = len(raw_client.get(f"/expenses?month={month}",
                                headers={"Authorization": f"Bearer {again}"}).json())
     assert count == len(raw_client.get(f"/expenses?month={month}", headers=headers).json())
+
+
+def test_demo_has_a_full_year_of_history(raw_client):
+    """The demo account has spending in each of the last 12 months, reported by the trend endpoint."""
+    from datetime import date
+
+    token = raw_client.post("/auth/demo").json()["token"]
+    headers = {"Authorization": f"Bearer {token}"}
+    month = date.today().strftime("%Y-%m")
+    trend = raw_client.get(f"/reports/monthly-trend?month={month}&months=12", headers=headers).json()
+    assert len(trend) == 12 and trend[-1]["month"] == month
+    assert all(float(point["total"]) > 0 for point in trend)
+    assert [p["month"] for p in trend] == sorted(p["month"] for p in trend)

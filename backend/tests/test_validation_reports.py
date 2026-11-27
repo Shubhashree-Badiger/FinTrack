@@ -66,3 +66,11 @@ def test_goal_contribution_caps_progress(client):
     goal = client.post("/goals", json={"name": "Trip", "target_amount": "1000"}).json()
     done = client.patch(f"/goals/{goal['id']}/contribute", json={"amount": "1500"}).json()
     assert done["progress_pct"] == 100.0
+
+
+def test_monthly_trend_fills_empty_months(client):
+    """The yearly trend lists every month, using 0 where nothing was spent."""
+    client.post("/expenses", json={"category_id": 1, "amount": "100", "spent_on": "2026-11-03"})
+    trend = client.get("/reports/monthly-trend?month=2026-11&months=3").json()
+    assert [p["month"] for p in trend] == ["2026-09", "2026-10", "2026-11"]
+    assert [float(p["total"]) for p in trend] == [0.0, 0.0, 100.0]

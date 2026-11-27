@@ -78,6 +78,7 @@ export const api = {
   saveBudget: (data) => send("PUT", "/budgets", data),
   getAlerts: (month) => request(`/alerts?month=${month}`),
   getMonthlyTotal: (month) => request(`/reports/monthly-total?month=${month}`),
+  getMonthlyTrend: (month, months = 12) => request(`/reports/monthly-trend?month=${month}&months=${months}`),
   getBudgetVsSpend: (month) => request(`/reports/budget-vs-spend?month=${month}`),
   getGoals: () => request("/goals"),
   createGoal: (data) => send("POST", "/goals", data),

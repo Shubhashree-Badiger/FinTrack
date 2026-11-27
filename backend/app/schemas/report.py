@@ -36,3 +36,10 @@ class BudgetVsSpendOut(BaseModel):
     spent: Decimal
     remaining: Decimal | None
     status: AlertStatus
+
+
+class MonthTotalPoint(BaseModel):
+    """Total spending of one month, used for the yearly trend."""
+
+    month: str  # 'YYYY-MM'
+    total: Decimal
