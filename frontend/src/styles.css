@@ -1,0 +1,42 @@
+* { box-sizing: border-box; }
+body { margin: 0; font-family: system-ui, sans-serif; background: #f4f6f8; color: #1f2933; }
+.app { max-width: 960px; margin: 0 auto; padding: 16px; }
+
+.topbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 20px; }
+.topbar h1 { margin: 0; font-size: 1.5rem; color: #0b6e4f; }
+.topbar nav { display: flex; gap: 6px; flex: 1; }
+
+button { cursor: pointer; border: 0; border-radius: 6px; padding: 8px 14px; background: #0b6e4f; color: #fff; }
+button:disabled { opacity: 0.5; cursor: default; }
+button.secondary { background: #e4e7eb; color: #1f2933; }
+button.danger { background: #c0392b; }
+button.nav { background: transparent; color: #1f2933; }
+button.nav.active { background: #0b6e4f; color: #fff; }
+
+input, select { padding: 8px; border: 1px solid #cbd2d9; border-radius: 6px; font-size: 0.9rem; }
+
+.card { background: #fff; border-radius: 8px; padding: 16px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); }
+.card h2 { margin-top: 0; font-size: 1.1rem; }
+.big { font-size: 2rem; font-weight: 700; }
+
+.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; margin-bottom: 12px; }
+label { display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem; }
+
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 8px; border-bottom: 1px solid #e4e7eb; font-size: 0.9rem; }
+td.actions { display: flex; gap: 6px; }
+
+.alert { padding: 10px 14px; border-radius: 6px; margin-bottom: 8px; background: #fdecea; color: #a61b1b; border-left: 4px solid #c0392b; }
+.badge { padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; color: #fff; }
+.badge.ok { background: #0b6e4f; }
+.badge.exceeded { background: #c0392b; }
+.badge.no_budget { background: #7b8794; }
+
+.error { color: #a61b1b; }
+.success { color: #0b6e4f; }
+.muted { color: #7b8794; }
+
+.auth { display: flex; justify-content: center; padding-top: 80px; }
+.auth form { width: 340px; display: flex; flex-direction: column; gap: 12px; }
+.auth h1 { margin: 0; color: #0b6e4f; }
+.auth h2 { margin: 0; }
